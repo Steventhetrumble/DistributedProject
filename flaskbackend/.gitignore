@@ -1,0 +1,13 @@
+*.pyc
+app.db
+./tmp
+./build/*
+./.idea
+./.idea/*
+**/Scripts
+**/Lib
+**/.vscode
+**/__pycache__
+env
+venv
+*.sublime*
