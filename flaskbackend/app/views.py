@@ -1,9 +1,9 @@
-from flask import render_template, request, send_from_directory, flash, redirect, url_for
+from flask import render_template, request, send_from_directory, redirect, url_for
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder import ModelView, expose, BaseView, AppBuilder
 import logging
 from app import appbuilder, db
-from werkzeug import secure_filename, FileStorage
+from werkzeug import secure_filename
 import pandas as pd
 import os
 
@@ -11,7 +11,6 @@ import os
 #    Create your Views::
 class MyView(BaseView):
     route_base = "/myview"
-    UPLOAD_FOLDER = '/upload/'
     ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif','bin'])
 
     @expose('/method1/<string:param1>')
@@ -29,48 +28,21 @@ class MyView(BaseView):
         # do something with param1
         # and render it
         df = pd.read_csv("app/ScaledData/sales_data_training_scaled.csv")
-       
-        
         thing = df.to_json(orient='values')
         # index, columns, values, table
         return thing
+
     @expose('/method3/', methods = ['GET', 'POST'])
     def method3(self):
-        if request.method == 'POST':
-            up_file_list = []
-           
+        if request.method == 'POST':          
             appbuilder.get_app.logger.info(request.files)
             for a_file in request.files:
-                
-                a_file_name = secure_filename(a_file)
-                a_file_target = os.path.join(appbuilder.get_app.config['UPLOAD_FOLDER'], a_file_name)
-                appbuilder.get_app.logger.info(a_file_target)
-                file = request.files[a_file]
-                file.save(a_file_target)
-                
+                if a_file and self.allowed_file(a_file):
+                    a_file_name = secure_filename(a_file)
+                    a_file_target = os.path.join(appbuilder.get_app.config['UPLOAD_FOLDER'], a_file_name)
+                    file = request.files[a_file]
+                    file.save(a_file_target)
             return redirect(request.url)
-            #check if the post request has the file part
-            # if 'file' not in request.files:
-            #     flash('No file part')
-            #     return redirect(request.url)
-            # for a_file in request.files:
-            #     appbuilder.get_app.logger.info(a_file)
-               
-               
-            #     # if not isinstance(a_file, FileStorage):
-            #     #     raise TypeError("storage must be a werkzeug.FileStorage")
-            #     a_file_name = secure_filename(a_file)
-            #     a_file_target = os.path.join(self.UPLOAD_FOLDER, a_file_name)
-            #     a_file.save(a_file_target)
-            #     up_file_list.append(a_file_name)
-            # return redirect(url_for('uploaded_file', filename=up_file_list))
-                # if files and self.allowed_file(files):
-                #     file = request.files[files]
-                #     filename = secure_filename(file.filename)
-                #     file.save(os.path.join(self.UPLOAD_FOLDER))
-                #     return redirect(url_for('uploaded_file', filename=filename))
-            
-            
         return '''
     <!doctype html>
     <title>Upload new File</title>

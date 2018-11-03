@@ -75,7 +75,7 @@ LANGUAGES = {
 # Image and file configuration
 #---------------------------------------------------
 # The file upload folder, when using models with files
-UPLOAD_FOLDER = basedir + '/app/upload'
+UPLOAD_FOLDER = basedir + '/app/static/upload'
 
 # The image upload folder, when using models with images
 IMG_UPLOAD_FOLDER = basedir + '/app/static/uploads/'
