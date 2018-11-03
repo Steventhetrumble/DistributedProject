@@ -17,12 +17,11 @@ logging.getLogger().setLevel(logging.DEBUG)
 app = Flask(__name__, static_url_path='')
 
 logging.basicConfig(level=logging.INFO)
-
-
 logging.getLogger('flask_cors').level = logging.DEBUG
 
 CORS(app)
 app.config.from_object('config')
+app.config['PROPAGATE_EXCEPTIONS'] = True
 
 
 db = SQLA(app)
