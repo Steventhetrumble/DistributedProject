@@ -6,20 +6,24 @@ from flask_cors import CORS
  Logging configuration
 """
 
+
+
+
+
+
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(name)s:%(message)s')
 logging.getLogger().setLevel(logging.DEBUG)
 
 app = Flask(__name__, static_url_path='')
+
 logging.basicConfig(level=logging.INFO)
 
 
 logging.getLogger('flask_cors').level = logging.DEBUG
 
-
-
-
 CORS(app)
 app.config.from_object('config')
+
 
 db = SQLA(app)
 appbuilder = AppBuilder(app, db.session)

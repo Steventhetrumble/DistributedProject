@@ -31,9 +31,9 @@ class LossChart extends Component {
         },
         theme: 'material'
       },
-      rows: [
-        [0, 0]
-      ],
+      // rows: [
+      //   [0, 0]
+      // ],
       columns: [
         {
           type: 'number',

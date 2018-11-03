@@ -11,7 +11,7 @@ class App extends Component {
       model:{},
       X:[],
       Y:[],
-      epochs:1,
+      epochs:3,
       learningRate: 0.05,
       lossArray:[]
     }
@@ -57,16 +57,21 @@ class App extends Component {
     const xs = tf.tensor2d(this.state.X);
     const ys = tf.tensor1d(this.state.Y);
     this.state.model.compile({optimizer: 'adam', loss: 'meanSquaredError'});
-    
+    var tempArray = [];
     const h = await this.state.model.fit(xs,ys,{
-      batchSize: 4,
-      epochs: 3,
+      batchSize: 5,
+      epochs: this.state.epochs,
       callbacks: {
         onEpochEnd: async (epoch, log) => {
-          console.log(`Epoch ${epoch}: loss = ${log.loss}`);
+          console.log(`Epoch ${epoch }: loss = ${log.loss}`);
+          tempArray.push([epoch ,log.loss]);
         }
       }
     });
+    console.log(h.history.loss);
+    const resultOfSave = await this.state.model.save(tf.io.browserHTTPRequest('http://127.0.0.1:5000/myview/method3/'));
+    await this.setState({lossArray:tempArray});
+    console.log(resultOfSave)
     // console.log("Loss after Epoch:" + h.history.loss[0]);
     
     // this.setState({lossArray:h.history.loss})
