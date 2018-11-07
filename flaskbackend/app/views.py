@@ -9,7 +9,7 @@ from werkzeug.utils import secure_filename
 import pandas as pd
 import os
 
-from .models import ModelManager, DownloadModelsQueue, UploadModelsQueue
+from .models import ModelManager, DownloadModelsQueue, UploadModelsQueue, testModel
 
 #    Create your Views::
 class MyView(BaseView):
@@ -60,24 +60,28 @@ class MyView(BaseView):
         return '.' in filename and \
             filename.rsplit('.', 1)[1].lower() in self.ALLOWED_EXTENSIONS
 
-# class ModelManagerView(ModelView):
-#     datamodel = SQLAInterface(ModelManager)
-#     list_columns = ["project_name", "steps_per_iteration", "max_steps", "steps_complete", "Data_path", "Data_size","batch_size","original_model_path", "final_model_path"]
+class ModelManagerView(ModelView):
+    datamodel = SQLAInterface(ModelManager)
+    list_columns = ["project_name", "steps_per_iteration", "max_steps", "steps_complete", "Data_path", "Data_size","batch_size","original_model_path", "final_model_path"]
 
+class testView(ModelView):
+    datamodel = SQLAInterface(testModel)
+    list_columns = ["name"]
 
-# class DownloadModelsQueueView(ModelView):
-#     datamodel = SQLAInterface(DownloadModelsQueue)
-#     list_columns = ["project_name", "current_iteration", "model_path", "data_path", "step", "step_size", "is_created", "is_complete" ]
+class DownloadModelsQueueView(ModelView):
+    datamodel = SQLAInterface(DownloadModelsQueue)
+    list_columns = ["project_name", "current_iteration", "model_path", "data_path", "step", "step_size", "is_created", "is_complete" ]
 
-# class UploadModelsQueueView(ModelView):
-#     datamodel = SQLAInterface(UploadModelsQueue)
-#     list_columns = ["project_name", "current_iteration", "model_path","step"]
+class UploadModelsQueueView(ModelView):
+    datamodel = SQLAInterface(UploadModelsQueue)
+    list_columns = ["project_name", "current_iteration", "model_path","step"]
 
-# #    Next, register your Views::
+#    Next, register your Views::
 
-# appbuilder.add_view(ModelManager, "Model Manager", icon="fa-folder-open-o", category="My Category", category_icon='fa-envelope')
-# appbuilder.add_view(DownloadModelsQueue, "Download Queue", icon="fa-folder-open-o", category="My Category", category_icon='fa-envelope')
-# appbuilder.add_view(UploadModelsQueue, "Upload Queue", icon="fa-folder-open-o", category="My Category", category_icon='fa-envelope')
+appbuilder.add_view(ModelManagerView, "Model Manager", icon="fa-folder-open-o", category="Admin", category_icon='fa-envelope')
+appbuilder.add_view(DownloadModelsQueueView, "Download Queue", icon="fa-folder-open-o", category="Admin")
+appbuilder.add_view(UploadModelsQueueView, "Upload Queue", icon="fa-folder-open-o", category="Admin")
+appbuilder.add_view(testView, "test", icon="fa-folder-open-o", category="Admin")
 
 
 appbuilder.add_view_no_menu(MyView())
