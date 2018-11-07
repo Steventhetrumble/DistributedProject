@@ -2,8 +2,10 @@ from flask import render_template, request, send_from_directory, redirect, url_f
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder import ModelView, expose, BaseView, AppBuilder
 import logging
+#from models import ModelManager, DownloadModelsQueue, UploadModelsQueue
 from app import appbuilder, db
-from werkzeug import secure_filename
+#from app.models import ModelManager, DownloadModelsQueue, UploadModelsQueue
+from werkzeug.utils import secure_filename
 import pandas as pd
 import os
 
@@ -57,15 +59,25 @@ class MyView(BaseView):
         return '.' in filename and \
             filename.rsplit('.', 1)[1].lower() in self.ALLOWED_EXTENSIONS
 
-
-    # class MyModelView(ModelView):
-    #     datamodel = SQLAInterface(MyModel)
-
-
-#    Next, register your Views::
+# class ModelManagerView(ModelView):
+#     datamodel = SQLAInterface(ModelManager)
+#     list_columns = ["project_name", "steps_per_iteration", "max_steps", "steps_complete", "Data_path", "Data_size","batch_size","original_model_path", "final_model_path"]
 
 
-    # appbuilder.add_view(MyModelView, "My View", icon="fa-folder-open-o", category="My Category", category_icon='fa-envelope')
+# class DownloadModelsQueueView(ModelView):
+#     datamodel = SQLAInterface(DownloadModelsQueue)
+#     list_columns = ["project_name", "current_iteration", "model_path", "data_path", "step", "step_size", "is_created", "is_complete" ]
+
+# class UploadModelsQueueView(ModelView):
+#     datamodel = SQLAInterface(UploadModelsQueue)
+#     list_columns = ["project_name", "current_iteration", "model_path","step"]
+
+# #    Next, register your Views::
+
+# appbuilder.add_view(ModelManager, "Model Manager", icon="fa-folder-open-o", category="My Category", category_icon='fa-envelope')
+# appbuilder.add_view(DownloadModelsQueue, "Download Queue", icon="fa-folder-open-o", category="My Category", category_icon='fa-envelope')
+# appbuilder.add_view(UploadModelsQueue, "Upload Queue", icon="fa-folder-open-o", category="My Category", category_icon='fa-envelope')
+
 
 appbuilder.add_view_no_menu(MyView())
 """

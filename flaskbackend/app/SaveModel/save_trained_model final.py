@@ -19,7 +19,7 @@ model.compile(loss='mean_squared_error', optimizer='adam')
 model.fit(
     X,
     Y,
-    epochs=50,
+    epochs=1,
     shuffle=True,
     verbose=2
 )
