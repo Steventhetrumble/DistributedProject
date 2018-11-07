@@ -31,15 +31,6 @@ logging.getLogger().setLevel(logging.DEBUG)
 logging.basicConfig(level=logging.INFO)
 logging.getLogger('flask_cors').level = logging.DEBUG
 
-
-#appbuilder = AppBuilder(app, db.session)
-appbuilder.get_app.logger.info(ctypes.windll.shell32.IsUserAnAdmin())
-
-
-
-
-
-
 #Only include this for SQLLite constraints
 @event.listens_for(Engine, "connect")
 def set_sqlite_pragma(dbapi_connection, connection_record):

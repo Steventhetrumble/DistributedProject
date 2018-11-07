@@ -9,6 +9,7 @@ from werkzeug.utils import secure_filename
 import pandas as pd
 import os
 
+from .models import ModelManager, DownloadModelsQueue, UploadModelsQueue
 
 #    Create your Views::
 class MyView(BaseView):
