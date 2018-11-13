@@ -1,7 +1,8 @@
 import React, { Component } from 'react';
-import logo from './logo.svg';
+//import logo from './logo.svg';
 import './App.css';
-import * as tf from '@tensorflow/tfjs'
+import * as tf from '@tensorflow/tfjs';
+import LossChart from './LossChart/LossChart';
 
 class App extends Component {
   constructor(){
@@ -10,43 +11,94 @@ class App extends Component {
       model:{},
       X:[],
       Y:[],
+      epochs:3,
+      learningRate: 0.05,
+      lossArray:[]
     }
   }
 
   async componentDidMount(){
     try{
       const tempmodel = await tf.loadModel(tf.io.browserHTTPRequest('http://127.0.0.1:5000/myview/method1/model'))
-      console.log(tempmodel)
       this.setState({model:tempmodel })
+
       const res = await fetch('http://127.0.0.1:5000/myview/method2/')
-      const tempData = await res.json();
-      console.log(tempData);
-
-
+      var tempX = [];
+      var tempY = [];
+      
+      await res.json().then(element => {
+       element.forEach(element => {
+        var i;
+        var littlex=[];
+        
+        for(i = 0 ; i < element.length ; i ++){
+          //The seventh index is the scaled estimated cost in this model-- the label
+          if(i === 8){
+            tempY.push(element[i])
+          }
+          else littlex.push(element[i])
+        }
+        tempX.push(littlex);
+       });        
+      });
+      
+      this.setState({
+        X:tempX,
+        Y:tempY,
+      })
 
     }catch(e){
       console.log(e);
     }
+
+  }
+  async trainModel(){
+    // console.log(this.state.Y);
+    const xs = tf.tensor2d(this.state.X);
+    const ys = tf.tensor1d(this.state.Y);
+    this.state.model.compile({optimizer: 'adam', loss: 'meanSquaredError'});
+    var tempArray = [];
+    const h = await this.state.model.fit(xs,ys,{
+      batchSize: 5,
+      epochs: this.state.epochs,
+      callbacks: {
+        onEpochEnd: async (epoch, log) => {
+          console.log(`Epoch ${epoch }: loss = ${log.loss}`);
+          tempArray.push([epoch ,log.loss]);
+        }
+      }
+    });
+    console.log(h.history.loss);
+    const resultOfSave = await this.state.model.save(tf.io.browserHTTPRequest('http://127.0.0.1:5000/myview/method3/'));
+    await this.setState({lossArray:tempArray});
+    console.log(resultOfSave)
+    // console.log("Loss after Epoch:" + h.history.loss[0]);
+    
+    // this.setState({lossArray:h.history.loss})
+
   }
 
 
   render() {
+    let lossArray = this.state.lossArray.length ? this.state.lossArray : [[0,0]];
     return (
       <div className="App">
-        <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <p>
-            Edit <code>src/App.js</code> and save to reload.
-          </p>
-          <a
-            className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Learn React
-          </a>
-        </header>
+      <hr/>
+        <div className="section hero">
+          <div className="container">
+            <h3 className="section-heading">Need help getting started?</h3>
+            <p className="section-description">To get started, click on the Train Model Button!</p>
+            <div className="sixteen columns">
+              <div className="ten columns offset-by-one">
+                <LossChart lossArray={lossArray} epochs={this.state.epochs} />
+                <br/>
+                {/* eslint-disable-next-line */}
+                <a className="button button-primary" onClick={() => this.trainModel()}>Start Training Model</a>
+              </div>
+            </div>
+            
+          </div>
+        </div>
       </div>
     );
   }

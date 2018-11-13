@@ -1,5 +1,5 @@
 import pandas as pd
-from keras.models import Sequential
+from keras.models import Sequential, load_model
 from keras.layers import *
 
 training_data_df = pd.read_csv("../ScaledData/sales_data_training_scaled.csv")
@@ -19,13 +19,13 @@ model.compile(loss='mean_squared_error', optimizer='adam')
 model.fit(
     X,
     Y,
-    epochs=50,
+    epochs=2,
     shuffle=True,
     verbose=2
 )
 
 # Load the separate test data set
-test_data_df = pd.read_csv("../ScaledData/sales_data_test_scaled.csv")
+test_data_df = pd.read_csv("../ScaledData/sales_data_testing_scaled.csv")
 
 X_test = test_data_df.drop('total_earnings', axis=1).values
 Y_test = test_data_df[['total_earnings']].values
@@ -35,5 +35,11 @@ print("The mean squared error (MSE) for the test data set is: {}".format(test_er
 
 # Save the model to disk
 model.save("trained_model.h5")
+
 print("Model saved to disk.")
 
+del model
+
+model=load_model("trained_model.h5")
+
+print(model.get_weights())
