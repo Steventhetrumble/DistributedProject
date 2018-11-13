@@ -8,11 +8,6 @@ from sqlalchemy.engine import Engine
 from sqlalchemy import event
 
 
-"""
- Logging configuration
-"""
-
-
 
 app = Flask(__name__, static_url_path='')
 app.config.from_object('config')
@@ -20,16 +15,6 @@ app.config['PROPAGATE_EXCEPTIONS'] = True
 CORS(app)
 db = SQLA(app)
 appbuilder = AppBuilder(app, db.session)
-
-
-logging.basicConfig(format='%(asctime)s:%(levelname)s:%(name)s:%(message)s')
-logging.getLogger().setLevel(logging.DEBUG)
-
-
-
-
-logging.basicConfig(level=logging.INFO)
-logging.getLogger('flask_cors').level = logging.DEBUG
 
 #Only include this for SQLLite constraints
 @event.listens_for(Engine, "connect")
