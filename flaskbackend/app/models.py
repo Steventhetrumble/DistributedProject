@@ -4,6 +4,7 @@ from sqlalchemy import Column, Integer, String, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 
 class ModelManager(Model):
+    # TODO: can replace all paths with one path and add endings in create download queue function
     id = Column(Integer, primary_key=True)
     project_name= Column(String(100),unique=True, nullable=False)
     steps_per_iteration = Column(Integer)
@@ -15,11 +16,9 @@ class ModelManager(Model):
     original_model_path = Column(String(100)) # needs to be keras format
     final_model_path = Column(String(100)) # needs to be keras format
     parameters =Column(String(300))
-
-    def splits(self):
-        splits = self.Data_Size / self.Data_Split_Size
-        return splits
-
+    upload_Queue_path = Column(String(300))
+    download_Queue_path = Column(String(300))
+   
     def __repr__(self):
         return self.project_name
 
