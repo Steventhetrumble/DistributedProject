@@ -22,11 +22,6 @@ class ModelManager(Model):
     def __repr__(self):
         return self.project_name
 
-class DownloadQueueBuilder(Model):
-    id = Column(Integer,primary_key=True)
-    name = Column(String(50), unique=True, nullable=False)
-
-
 
 class DownloadModelsQueue(Model):
     id = Column(Integer, primary_key=True)
@@ -45,7 +40,7 @@ class DownloadModelsQueue(Model):
 
 class UploadModelsQueue(Model):
     id = Column(Integer, primary_key=True )
-    project_name = Column(String(100), unique = True, nullable=False)
+    project_name = Column(String(100),nullable=False)
     current_iteration = Column(Integer, nullable = False)
     model_path = Column(String(100), nullable=False)
     step = Column(Integer)

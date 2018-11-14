@@ -91,37 +91,40 @@ class ModelManagerView(ModelView):
         appbuilder.get_app.logger.info(str(task_number))
         Original_Path = session.query(ModelManager.original_model_path).filter(ModelManager.project_name == project_name).first()
         Download_Queue = session.query(ModelManager.download_Queue_path).filter(ModelManager.project_name == project_name).first()
-        Upload_Queue = session.query(ModelManager.upload_Queue_path).filter(ModelManager.project_name == project_name)
+        Upload_Queue = session.query(ModelManager.upload_Queue_path).filter(ModelManager.project_name == project_name).first()
         data_path = session.query(ModelManager.Data_path).filter(ModelManager.project_name == project_name).first()
-        self.prepare_down_up_file_struct(Original_Path,Download_Queue, Upload_Queue, int(iterations), int(task_number), project_name, data_path )
-
-
-
-        
+        appbuilder.get_app.logger.info(Download_Queue[0])
+        self.prepare_down_up_file_struct(str(Original_Path[0]),str(Download_Queue[0]), str(Upload_Queue[0]), int(iterations), int(task_number), project_name, str(data_path[0]) , int(data_split_size[0]), int(data_size[0]))
+      
     
-    def prepare_down_up_file_struct(self,Original_Path, Download_Queue,Upload_Queue, iterations, splits, project_name, data_path):
+    def prepare_down_up_file_struct(self,Original_Path, Download_Queue,Upload_Queue, iterations, splits, project_name, data_path, data_split_size, data_size):
         session = self.datamodel.session()
         model_name = "trained_model.h5"
-        model = load_model(Original_Path+ "/Keras/" + model_name)
+        model = load_model("./app" + Original_Path+ "/Keras/" + model_name)
         # TODO: model name needs to be stored
-        tfjs.converters.save_keras_model(model,Original_Path + "/web" )
+        tfjs.converters.save_keras_model(model,"./app" + Original_Path + "/web" )
         # TODO: Download queue folder structure is not required
         for i in range(iterations):
             for j in range(splits):
-                if not os.path.exists(Download_Queue + "/" + str(i)):
-                    os.mkdir( Download_Queue + "/" + str(i))
-                if not os.path.exists(Upload_Queue + "/" + str(i)):
-                    os.mkdir( Upload_Queue + "/" + str(i))
-                if not os.path.exists( Upload_Queue + "/" + str(i) + "/" + str(j) ):
-                    os.mkdir( Upload_Queue + "/" + str(i) + "/" + str(j) )
-                if not os.path.exists( Download_Queue + "/" + str(i) + "/" + str(j) ):
-                    os.mkdir( Download_Queue + "/" + str(i) + "/" + str(j) )
+                is_created = False
+                is_complete = False
+                if not os.path.exists("./app" +Download_Queue + "/" + str(i)):
+                    os.mkdir("./app" + Download_Queue + "/" + str(i))
+                if not os.path.exists("./app" +Upload_Queue + "/" + str(i)):
+                    os.mkdir("./app" + Upload_Queue + "/" + str(i))
+                if not os.path.exists( "./app" +Upload_Queue + "/" + str(i) + "/" + str(j) ):
+                    os.mkdir("./app" + Upload_Queue + "/" + str(i) + "/" + str(j) )
+                if not os.path.exists("./app" + Download_Queue + "/" + str(i) + "/" + str(j) ):
+                    os.mkdir("./app" + Download_Queue + "/" + str(i) + "/" + str(j) )
                 if i == 0:
-                    tfjs.converters.save_keras_model(model, Download_Queue + "/" + str(i) + "/" + str(j) )
+                    tfjs.converters.save_keras_model(model,"./app" + Download_Queue + "/" + str(i) + "/" + str(j) )
+                    is_created = True
                 # TODO: finish automatically making these objects
-                new_dqueue_member = DownloadModelsQueue(project_name =project_name,current_iteration =i,model_path =  Download_Queue + "/" + str(i) + "/" + str(j),data_path =data_path, step =1, step_size = 10, is_created =False, is_complete =False)
-                new_uqueue_member = UploadModelsQueue()
-                session.add(new_queue_member)
+                new_dqueue_member = DownloadModelsQueue(project_name =project_name,current_iteration =i,model_path =  Download_Queue + "/" + str(i) + "/" + str(j),data_path =data_path, step =i*data_size + j*data_split_size, step_size = data_split_size, is_created =is_created, is_complete =is_complete)
+                new_uqueue_member = UploadModelsQueue(project_name =project_name, current_iteration = i , model_path = Upload_Queue + "/" + str(i) + "/" + str(j), step = i*data_size +j*data_split_size)
+                session.add(new_dqueue_member)
+                session.add(new_uqueue_member)
+
                 session.commit()
     #      prepare_original("../static/Test_Project/Original/Keras/trained_model.h5",
     #  '../static/Test_Project/Original/web',"../static/Test_Project/Download_Queue",
@@ -138,40 +141,50 @@ class ModelManagerView(ModelView):
     def get_Model(self, projects, filename):
         session = self.datamodel.session()
         res = session.query(ModelManager.project_name).filter(ModelManager.project_name == projects).first()
-        
         rest = str(res)
-        
         if(rest == "None"):
             return redirect(request.url,404)
-        
-        else:
-            
+        else: 
             if(filename == "model"):
                 path = session.query(DownloadModelsQueue.model_path).filter(ModelManager.project_name == projects).first()
                 if(str(path)== "None"):
                     self.create_download_queue(projects)
+                    path = session.query(DownloadModelsQueue.model_path).filter(ModelManager.project_name == projects).first()
                 return str(path)
                 #return send_from_directory(session.query(DownloadModelsQueue.model_path).filter(ModelManager.project_name == projects).first(),"model.json")
                 
             else:
                 path = session.query(DownloadModelsQueue.model_path).filter(ModelManager.project_name == projects).first()
                 return str(path)
-                #return send_from_directory(session.query(DownloadModelsQueue.model_path).filter(ModelManager.project_name == projects).first(), filename)
-            
+                #return send_from_directory(session.query(DownloadModelsQueue.model_path).filter(ModelManager.project_name == projects).first(), filename)   
         return str(res)
 
 
 class DownloadModelsQueueView(ModelView):
     datamodel = SQLAInterface(DownloadModelsQueue, db.session)
     list_columns = ["project_name", "current_iteration", "model_path", "data_path", "step", "step_size", "is_created", "is_complete" ]
-    route_base = "/myview"
+    route_base = "/DownloadQueue"
+    
+    @action("muldelete", "Delete", "Delete all Really?", "fa-rocket", single=False)
+    def muldelete(self, items):
+        self.datamodel.delete_all(items)
+        self.update_redirect()
+        return redirect(self.get_redirect())
+
 
 class UploadModelsQueueView(ModelView):
     datamodel = SQLAInterface(UploadModelsQueue, db.session)
     list_columns = ["project_name", "current_iteration", "model_path","step"]
     route_base = "/myview2"
+
     @expose("/buildNextUploadQueue/")
     def buildNextUploadQueue(self):
+        return redirect(self.get_redirect())
+
+    @action("muldelete", "Delete", "Delete all Really?", "fa-rocket", single=False)
+    def muldelete(self, items):
+        self.datamodel.delete_all(items)
+        self.update_redirect()
         return redirect(self.get_redirect())
 
 #    Next, register your Views::
