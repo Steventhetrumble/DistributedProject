@@ -1,102 +1,46 @@
 import React, { Component } from 'react';
+import { Route } from 'react-router-dom';
 //import logo from './logo.svg';
 import './App.css';
-import * as tf from '@tensorflow/tfjs';
-import LossChart from './LossChart/LossChart';
+import Sequential from './Sequential/Sequential';
+import Parallel from './parallel/Parallel';
+import Home from './Home/Home';
+import Comparison from './Comparison/Comparison';
+import Team from './Team/Team';
 
 class App extends Component {
-  constructor(){
-    super();
-    this.state={
-      model:{},
-      X:[],
-      Y:[],
-      epochs:3,
-      learningRate: 0.05,
-      lossArray:[]
+ 
+  async openDrawerMenu(){
+    var x = document.getElementById("mainNavBar");
+    if (x.className === "navBar"){
+      x.className += " responsive";
+    } else {
+      x.className = "navBar";
     }
   }
-
-  async componentDidMount(){
-    try{
-      const tempmodel = await tf.loadModel(tf.io.browserHTTPRequest('http://127.0.0.1:5000/myview/method1/model'))
-      this.setState({model:tempmodel })
-
-      const res = await fetch('http://127.0.0.1:5000/myview/method2/')
-      var tempX = [];
-      var tempY = [];
-      
-      await res.json().then(element => {
-       element.forEach(element => {
-        var i;
-        var littlex=[];
-        
-        for(i = 0 ; i < element.length ; i ++){
-          //The seventh index is the scaled estimated cost in this model-- the label
-          if(i === 8){
-            tempY.push(element[i])
-          }
-          else littlex.push(element[i])
-        }
-        tempX.push(littlex);
-       });        
-      });
-      
-      this.setState({
-        X:tempX,
-        Y:tempY,
-      })
-
-    }catch(e){
-      console.log(e);
-    }
-
-  }
-  async trainModel(){
-    // console.log(this.state.Y);
-    const xs = tf.tensor2d(this.state.X);
-    const ys = tf.tensor1d(this.state.Y);
-    this.state.model.compile({optimizer: 'adam', loss: 'meanSquaredError'});
-    var tempArray = [];
-    const h = await this.state.model.fit(xs,ys,{
-      batchSize: 5,
-      epochs: this.state.epochs,
-      callbacks: {
-        onEpochEnd: async (epoch, log) => {
-          console.log(`Epoch ${epoch }: loss = ${log.loss}`);
-          tempArray.push([epoch ,log.loss]);
-        }
-      }
-    });
-    console.log(h.history.loss);
-    const resultOfSave = await this.state.model.save(tf.io.browserHTTPRequest('http://127.0.0.1:5000/myview/method3/'));
-    await this.setState({lossArray:tempArray});
-    console.log(resultOfSave)
-    // console.log("Loss after Epoch:" + h.history.loss[0]);
-    
-    // this.setState({lossArray:h.history.loss})
-
-  }
-
 
   render() {
-    let lossArray = this.state.lossArray.length ? this.state.lossArray : [[0,0]];
     return (
       <div className="App">
-      <hr/>
+        <div className="navBar" id="mainNavBar">
+          <a href="/Home">Home</a>
+          <a href="/Sequential">Sequential</a>
+          <a href="/Parallel">Parallel</a>
+          <a href="/Comparison">Comparison</a>
+          <a href="/Team">Team</a>
+          <a className="icon" onClick={() => this.openDrawerMenu()}>&#9776;</a>
+        </div>
         <div className="section hero">
           <div className="container">
-            <h3 className="section-heading">Need help getting started?</h3>
-            <p className="section-description">To get started, click on the Train Model Button!</p>
             <div className="sixteen columns">
               <div className="ten columns offset-by-one">
-                <LossChart lossArray={lossArray} epochs={this.state.epochs} />
-                <br/>
-                {/* eslint-disable-next-line */}
-                <a className="button button-primary" onClick={() => this.trainModel()}>Start Training Model</a>
+                <Route path="/Home" component={Home}/>
+                <Route path="/Sequential" component={Sequential}/>
+                <Route path="/Parallel" component={Parallel}/>
+                <Route path="/Comparison" component={Comparison}/>
+                <Route path="/Team" component={Team}/>
               </div>
             </div>
-            
           </div>
         </div>
       </div>
