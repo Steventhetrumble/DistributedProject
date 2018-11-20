@@ -20,24 +20,24 @@ import numpy as np
 
 #    Create your Views::
 class MyView(BaseView):
-    route_base = "/myview"
-    ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif','bin'])
+    route_base = "/Sequential"
+    ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif','bin','json'])
 
     @expose('/method1/<string:param1>')
     def method1(self, param1):
         # do something with param1
         # and return it
         if(param1 == "model"):
-            return send_from_directory('./convertModel/tfjs_target_dir',"model.json")
+            return send_from_directory('./static/Sequential/SaveModel',"model.json")
             
         else:
-            return send_from_directory('./convertModel/tfjs_target_dir', param1)
+            return send_from_directory('./static/Sequential/SaveModel', param1)
 
     @expose('/method2/')
     def method2(self):
         # do something with param1
         # and render it
-        df = pd.read_csv("app/ScaledData/sales_data_training_scaled.csv")
+        df = pd.read_csv("app/static/Sequential/ScaledData/sales_data_training_scaled.csv")
         thing = df.to_json(orient='values')
         # index, columns, values, table
         return thing
@@ -49,7 +49,7 @@ class MyView(BaseView):
             for a_file in request.files:
                 if a_file and self.allowed_file(a_file):
                     a_file_name = secure_filename(a_file)
-                    a_file_target = os.path.join(appbuilder.get_app.config['UPLOAD_FOLDER'], a_file_name)
+                    a_file_target = os.path.join(appbuilder.get_app.config['UPLOAD_FOLDER'] + "/Sequential/upload", a_file_name)
                     file = request.files[a_file]
                     file.save(a_file_target)
             return redirect(request.url)
@@ -68,10 +68,10 @@ class MyView(BaseView):
             filename.rsplit('.', 1)[1].lower() in self.ALLOWED_EXTENSIONS
 
 class ModelManagerView(ModelView):
-    route_base = "/Model"
+    route_base = "/Parallel"
     datamodel = SQLAInterface(ModelManager, db.session)
     list_columns = ["project_name", "parameters", "steps_per_iteration", "max_steps", "steps_complete", "Data_Size","Data_Split_Size"]
-    ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif','bin'])
+    ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif','bin','json'])
 
     @expose("/list_models/")
     def list_models(self):
@@ -136,13 +136,14 @@ class ModelManagerView(ModelView):
         
         return str(res)
 
-    @expose("/get_data/<string:project>/<string:path>")
-    def get_data(self, project, path):
+    @expose("/get_data/<string:project>/<int:iteration>/<int:task_number>")
+    def get_data(self, project, iteration, task_number):
+        path = str(iteration) + "/" + str(task_number)
         data_name ="sales_data_training_scaled.csv"
         session = self.datamodel.session()
         res = session.query(DownloadModelsQueue).filter(and_( DownloadModelsQueue.project_name == project, DownloadModelsQueue.model_path == path)).first()
         df = pd.read_csv("app/static/" + str(res.project_name)+"/Data/" + data_name)
-        df = df.loc[res.step:res.step + res.step_size,:]
+        df = df.loc[task_number*res.step_size:task_number*res.step_size + res.step_size,:]
         thing = df.to_json(orient='values')
         # index, columns, values, table
         return thing
@@ -159,20 +160,21 @@ class ModelManagerView(ModelView):
             return path
 
     
-    @expose("/check_model_for_up/<string:project>/<string:path>")
-    def check_model_for_up(self, project, path):
+    @expose("/check_model_for_up/<string:project>/<string:iteration>/<string:task_number>")
+    def check_model_for_up(self, project, iteration, task_number):
+        path = iteration + "/" + task_number
         session = self.datamodel.session()
         res = session.query(ModelManager).filter(ModelManager.project_name == project).first()
         rest = str(res.project_name)
         if(rest == "None"):
             return redirect(request.url, 404)
         else:
-            result = self.check_uq(path, path)
+            result = self.check_uq(project, path)
             return result
 
-    @expose("/get_Model/<string:project>/<string:path>/<string:filename>")
-    def get_Model(self, project,path, filename):       
-        
+    @expose("/get_Model/<string:project>/<string:filename>/<string:iteration>/<string:task_number>")
+    def get_Model(self, project,filename, iteration, task_number):       
+        path = iteration + "/" + task_number
         if(filename == "model"):                
             return str("./app/static/" + project + "/Download_Queue/" + path)
             #return send_from_directory(session.query(DownloadModelsQueue.model_path).filter(ModelManager.project_name == projects).first(),"model.json")
@@ -230,9 +232,9 @@ class ModelManagerView(ModelView):
         else:
             return False
     
-    @expose('/put_model/<string:project>/<string:path>', methods = ['GET', 'POST'])
-    def put_model(self, project, path):
-
+    @expose('/put_model/<string:project>/<string:iteration>/<string:task_number>', methods = ['GET', 'POST'])
+    def put_model(self, project, iteration, task_number):
+        path = iteration + "/" + task_number
         session = self.datamodel.session()
         download_models_queue = session.query(DownloadModelsQueue).filter(and_(DownloadModelsQueue.project_name == project, DownloadModelsQueue.model_path == path))
         upload_models_queue = session.query(UploadModelsQueue).filter(and_(UploadModelsQueue.project_name ==  project, UploadModelsQueue.model_path == path))
