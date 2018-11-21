@@ -11,8 +11,8 @@ class Sequential extends Component {
       model:{},
       X:[],
       Y:[],
-      epochs:5,
-      learningRate: 0.005,
+      epochs:20,
+      learningRate: 0.1,
       lossArray:[]
     }
   }

@@ -32,15 +32,11 @@ class Parallel extends Component {
       
       console.log(path)
       if(path === 'wait'){
-        while(path === 'wait'){
-          await sleep(100);
-          task = fetch('http://127.0.0.1:8080/Parallel/check_model_for_down/Test_Project')
-          await task.json().then(element =>{
-            path = element.result
-          })
-        } 
+        console.log('wait')
+        return
       }
       if(path === 'done'){
+        console.log(" is complete")
         return
       }
       console.log(path)

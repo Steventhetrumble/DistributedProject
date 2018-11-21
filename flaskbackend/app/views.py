@@ -19,6 +19,8 @@ from sqlalchemy import and_, or_
 import numpy as np
 import threading
 import time
+import tensorflow as tf
+from keras import backend as K
 
 
 
@@ -301,20 +303,23 @@ class ModelManagerView(ModelView):
         appbuilder.get_app.logger.info(data_size)
 
         iterations = max_steps/data_size
-
+        
         data_split_size = model_manager.Data_Split_Size
         appbuilder.get_app.logger.info(data_split_size)
         task_number = data_size / data_split_size
         current_iteration = model_manager.steps_complete / model_manager.steps_per_iteration
         appbuilder.get_app.logger.info(task_number)
         models = []
+        sess = tf.Session()
+        K.set_session(sess)
         for i in range(int(task_number)):
             appbuilder.get_app.logger.info(i)
             path = "./app/static/"+ project + "/Upload_Queue/" + str(int(current_iteration)) + "/" + str(i) + "/model.json"
-            model = tfjs.converters.load_keras_model(path)
-            models.append(model)
+            
+            models.append(get_keras_model(path))
 
         out_model = average_combine(models)
+        appbuilder.get_app.logger.info(out_model.get_weights())
 
         model_manager.steps_complete += model_manager.steps_per_iteration
         session.commit()
@@ -326,9 +331,12 @@ class ModelManagerView(ModelView):
             current_iteration = model_manager.steps_complete / model_manager.steps_per_iteration
             download_queue = session.query(DownloadModelsQueue).filter(and_(DownloadModelsQueue.project_name == project, DownloadModelsQueue.current_iteration == current_iteration)).all()
             for task in download_queue:
-                path ="./app/static/Download_Queue/" + task.model_path
+                path ="./app/static/"+ project + "/Download_Queue/" + task.model_path
+                appbuilder.get_app.logger.info(path)
                 tfjs.converters.save_keras_model(out_model, path)
-            
+                task.is_created = True
+                session.commit()
+        del out_model
 
 
 
@@ -380,7 +388,7 @@ db.create_all()
 
 def average_combine(model_list):
     output_model = clone_model(model_list[0])
-
+    output_model
     for layer in enumerate(model_list[0].layers):
         # retrieve weights for the layer from the first model in the list
         layer_index = layer[0]
@@ -394,3 +402,5 @@ def average_combine(model_list):
     return output_model
 
 #appbuilder.get_app.logger.info(request.files)
+def get_keras_model(path):
+    return tfjs.converters.load_keras_model(path, use_unique_name_scope=True)
