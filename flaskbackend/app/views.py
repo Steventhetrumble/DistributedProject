@@ -1,4 +1,4 @@
-from flask import render_template, request, send_from_directory, redirect, url_for
+from flask import render_template, request, send_from_directory, redirect, url_for, jsonify
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder import ModelView, expose, BaseView, AppBuilder
 from flask_appbuilder.actions import action
@@ -17,11 +17,21 @@ from keras.layers import Dense
 from .models import ModelManager, DownloadModelsQueue, UploadModelsQueue
 from sqlalchemy import and_, or_
 import numpy as np
+import threading
+import time
+
+
 
 #    Create your Views::
 class MyView(BaseView):
     route_base = "/Sequential"
     ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif','bin','json'])
+
+    def test_threads(self):
+        for i in range(2):
+            time.sleep(1)
+            appbuilder.get_app.logger.info("hey how are you")
+
 
     @expose('/method1/<string:param1>')
     def method1(self, param1):
@@ -37,6 +47,7 @@ class MyView(BaseView):
     def method2(self):
         # do something with param1
         # and render it
+        threading.Thread(target=self.test_threads).start()
         df = pd.read_csv("app/static/Sequential/ScaledData/sales_data_training_scaled.csv")
         thing = df.to_json(orient='values')
         # index, columns, values, table
@@ -157,7 +168,7 @@ class ModelManagerView(ModelView):
             return redirect(request.url, 404)
         else:
             path = self.check_dq(res.project_name)
-            return path
+            return jsonify({'result':path})
 
     
     @expose("/check_model_for_up/<string:project>/<string:iteration>/<string:task_number>")
@@ -170,19 +181,15 @@ class ModelManagerView(ModelView):
             return redirect(request.url, 404)
         else:
             result = self.check_uq(project, path)
-            return result
+            return "{'result':" + result + "}"
 
-    @expose("/get_Model/<string:project>/<string:filename>/<string:iteration>/<string:task_number>")
-    def get_Model(self, project,filename, iteration, task_number):       
+    @expose("/get_Model/<string:project>/<string:iteration>/<string:task_number>/<string:filename>")
+    def get_Model(self, project, iteration, task_number, filename):       
         path = iteration + "/" + task_number
         if(filename == "model"):                
-            return str("./app/static/" + project + "/Download_Queue/" + path)
-            #return send_from_directory(session.query(DownloadModelsQueue.model_path).filter(ModelManager.project_name == projects).first(),"model.json")
-            
+            return send_from_directory("./static/" + project + "/Download_Queue/" + path,"model.json")
         else:
-            
-            return str("./app/static/" + project + "/Download_Queue/" + path + "/" + filename)
-            #return send_from_directory(session.query(DownloadModelsQueue.model_path).filter(ModelManager.project_name == projects).first(), filename)   
+            return send_from_directory("./static/" + project + "/Download_Queue/" + path, filename)   
         
 
     def check_uq(self, project, path):
@@ -231,13 +238,31 @@ class ModelManagerView(ModelView):
             return True
         else:
             return False
+
+    def check_if_iteration_is_complete(self, project):
+        session = self.datamodel.session()
+        model_manager = session.query(ModelManager).filter(ModelManager.project_name == project).first()
+        current_iteration = model_manager.steps_complete / model_manager.steps_per_iteration
+        res = session.query(UploadModelsQueue).filter(and_(UploadModelsQueue.project_name == project, UploadModelsQueue.current_iteration== current_iteration, UploadModelsQueue.is_uploaded == False)).all()
+        if(len(res)== 0):
+            return True
+        else:
+            return False
+    
+    def check_and_combine(self, project):
+        appbuilder.get_app.logger.info(project)
+        if(self.check_if_iteration_is_complete(project)):
+            
+            self.combine_model(project)
+    
+
     
     @expose('/put_model/<string:project>/<string:iteration>/<string:task_number>', methods = ['GET', 'POST'])
     def put_model(self, project, iteration, task_number):
         path = iteration + "/" + task_number
         session = self.datamodel.session()
-        download_models_queue = session.query(DownloadModelsQueue).filter(and_(DownloadModelsQueue.project_name == project, DownloadModelsQueue.model_path == path))
-        upload_models_queue = session.query(UploadModelsQueue).filter(and_(UploadModelsQueue.project_name ==  project, UploadModelsQueue.model_path == path))
+        download_models_queue = session.query(DownloadModelsQueue).filter(and_(DownloadModelsQueue.project_name == project, DownloadModelsQueue.model_path == path)).first()
+        upload_models_queue = session.query(UploadModelsQueue).filter(and_(UploadModelsQueue.project_name ==  project, UploadModelsQueue.model_path == path)).first()
         
         if request.method == 'POST':          
             appbuilder.get_app.logger.info(request.files)
@@ -251,6 +276,7 @@ class ModelManagerView(ModelView):
             download_models_queue.is_checked_out = False
             upload_models_queue.is_uploaded = True 
             session.commit()
+            threading.Thread(target=self.check_and_combine, args=(project,)).start()
             return redirect(request.url)
 
         return '''
@@ -272,18 +298,22 @@ class ModelManagerView(ModelView):
         max_steps = model_manager.max_steps
 
         data_size = model_manager.Data_Size
+        appbuilder.get_app.logger.info(data_size)
 
         iterations = max_steps/data_size
 
-        data_split_size = ModelManager.Data_Split_Size
-        task_number = data_size/data_split_size
+        data_split_size = model_manager.Data_Split_Size
+        appbuilder.get_app.logger.info(data_split_size)
+        task_number = data_size / data_split_size
         current_iteration = model_manager.steps_complete / model_manager.steps_per_iteration
-        
+        appbuilder.get_app.logger.info(task_number)
         models = []
-        for i in range(task_number):
-            path = "./app/static/"+ project + "/Upload_Queue" + str(current_iteration) + "/" + str(i) + "/model.json"
+        for i in range(int(task_number)):
+            appbuilder.get_app.logger.info(i)
+            path = "./app/static/"+ project + "/Upload_Queue/" + str(int(current_iteration)) + "/" + str(i) + "/model.json"
             model = tfjs.converters.load_keras_model(path)
             models.append(model)
+
         out_model = average_combine(models)
 
         model_manager.steps_complete += model_manager.steps_per_iteration
@@ -296,7 +326,7 @@ class ModelManagerView(ModelView):
             current_iteration = model_manager.steps_complete / model_manager.steps_per_iteration
             download_queue = session.query(DownloadModelsQueue).filter(and_(DownloadModelsQueue.project_name == project, DownloadModelsQueue.current_iteration == current_iteration)).all()
             for task in download_queue:
-                path ="./app/static/Download/" + task.model_path
+                path ="./app/static/Download_Queue/" + task.model_path
                 tfjs.converters.save_keras_model(out_model, path)
             
 
@@ -362,3 +392,5 @@ def average_combine(model_list):
         output_model.layers[layer_index].set_weights(layer_w)
 
     return output_model
+
+#appbuilder.get_app.logger.info(request.files)
