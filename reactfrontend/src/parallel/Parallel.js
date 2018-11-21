@@ -4,6 +4,11 @@ import './Parallel.css';
 import * as tf from '@tensorflow/tfjs';
 import LossChart from '../LossChart/LossChart';
 
+
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 class Parallel extends Component {
   constructor(){
     super();
@@ -11,18 +16,39 @@ class Parallel extends Component {
       model:{},
       X:[],
       Y:[],
-      epochs:5,
-      learningRate: 0.05,
+      epochs:1,
+      learningRate: 0.1,
       lossArray:[]
     }
   }
-
+  
   async trainModel(){
     try{
-      const tempmodel = await tf.loadModel(tf.io.browserHTTPRequest('http://127.0.0.1:8080/Parallel/method1/model'))
+      var task = await fetch('http://127.0.0.1:8080/Parallel/check_model_for_down/Test_Project')
+      var path;
+      await task.json().then(element =>{
+        path = element.result
+      })
+      
+      console.log(path)
+      if(path === 'wait'){
+        while(path === 'wait'){
+          await sleep(100);
+          task = fetch('http://127.0.0.1:8080/Parallel/check_model_for_down/Test_Project')
+          await task.json().then(element =>{
+            path = element.result
+          })
+        } 
+      }
+      if(path === 'done'){
+        return
+      }
+      console.log(path)
+      const tempModelPath = 'http://127.0.0.1:8080/Parallel/get_Model/Test_Project/'+ path +'/model'
+      const tempmodel = await tf.loadModel(tf.io.browserHTTPRequest(tempModelPath))
       this.setState({model:tempmodel })
-
-      const res = await fetch('http://127.0.0.1:8080/Parallel/method2/')
+      const dataPath = 'http://127.0.0.1:8080/Parallel/get_data/Test_Project/' + path
+      const res = await fetch(dataPath)
       var tempX = [];
       var tempY = [];
       
@@ -61,7 +87,8 @@ class Parallel extends Component {
       }
     });
     console.log(h.history.loss);
-    const resultOfSave = await this.state.model.save(tf.io.browserHTTPRequest('http://127.0.0.1:8080/Parallel/method3/'));
+    const resultPath = 'http://127.0.0.1:8080/Parallel/put_model/Test_Project/' +path 
+    const resultOfSave = await this.state.model.save(tf.io.browserHTTPRequest(resultPath));
     await this.setState({lossArray:tempArray});
     console.log(resultOfSave)
 

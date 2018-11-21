@@ -19,6 +19,7 @@ class Sequential extends Component {
   
   async componentDidMount(){
     try{
+      
       const tempmodel = await tf.loadModel(tf.io.browserHTTPRequest('http://127.0.0.1:8080/Sequential/method1/model'))
       this.setState({model:tempmodel })
 
@@ -65,7 +66,7 @@ class Sequential extends Component {
       callbacks: {
         onEpochEnd: async (epoch, log) => {
           console.log(`Epoch ${epoch }: loss = ${log.loss}`);
-          tempArray.push([epoch ,log.loss]);
+          tempArray.push([epoch+1 ,log.loss]);
         }
       }
     });
