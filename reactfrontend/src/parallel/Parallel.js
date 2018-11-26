@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import './Parallel.css';
 import * as tf from '@tensorflow/tfjs';
 import LossChart from '../LossChart/LossChart';
+import { profile } from '@tensorflow/tfjs';
 
 // function sleep(ms) {
 //   return new Promise(resolve => setTimeout(resolve, ms));
@@ -11,30 +12,49 @@ class Parallel extends Component {
     super();
     this.state = {
       path: '',
+      task: null,
+      iteration: null,
+      progress: 0,
       model: {},
       X: [],
       Y: [],
       epochs: 1,
       epoch: 0,
       learningRate: 0.1,
-      lossArray: []
+      lossArray: [[0, 0]]
     };
+  }
+
+  componentWillMount() {
+    this.getLossResults();
+    this.getProgress();
+  }
+
+  async getLossResults() {
+    const res = await fetch(
+      'http://127.0.0.1:8080/Parallel/get_loss/Test_Project'
+    );
+
+    const data = await res.json();
+    console.log(data);
+    this.setState({ lossArray: data });
   }
 
   async trainModel() {
     try {
-      const task = await fetch(
+      const status = await fetch(
         'http://127.0.0.1:8080/Parallel/check_model_for_down/Test_Project'
       );
       let path;
-      await task.json().then(element => {
+      await status.json().then(element => {
         path = element.result;
       });
 
       console.log(path);
       if (path === 'wait') {
         console.log('wait');
-        return;
+
+        setTimeout(() => this.trainModel(), 1000);
       }
       if (path === 'done') {
         console.log(' is complete');
@@ -70,11 +90,17 @@ class Parallel extends Component {
         });
       });
 
+      const task = /^[0-9]+/.exec(path)[0];
+      const iteration = /[0-9]+$/.exec(path)[0];
+
       this.setState({
         path,
+        task,
+        iteration,
         X: tempX,
         Y: tempY
       });
+
       const xs = tf.tensor2d(this.state.X);
       const ys = tf.tensor1d(this.state.Y);
       this.state.model.compile({ optimizer: 'adam', loss: 'meanSquaredError' });
@@ -91,15 +117,19 @@ class Parallel extends Component {
         }
       });
       console.log(h.history.loss);
-      const resultPath =
-        'http://127.0.0.1:8080/Parallel/put_model/Test_Project/' + path;
+      const resultPath = `http://127.0.0.1:8080/Parallel/put_model/Test_Project/${path}/${
+        tempArray[1]
+      }`;
       const resultOfSave = await this.state.model.save(
         tf.io.browserHTTPRequest(resultPath)
       );
       // await this.setState({
       //   lossArray: this.state.lossArray.concat(tempArray)
       // });
-      await this.state.lossArray.push(tempArray);
+      // await this.state.lossArray.push(tempArray);
+
+      await this.getLossResults();
+      await this.getProgress();
       console.log(resultOfSave);
     } catch (e) {
       console.log(e);
@@ -112,26 +142,40 @@ class Parallel extends Component {
     // this.setState({lossArray:h.history.loss})
   }
 
+  getProgress() {
+    const progress =
+      ((parseInt(this.state.task) +
+        1 +
+        (parseInt(this.state.iteration) + 1) / 5) /
+        20) *
+      100;
+
+    this.setState({ progress: progress ? Math.floor(progress) : 0 });
+  }
+
   render() {
-    let lossArray = this.state.lossArray.length
-      ? this.state.lossArray
-      : [[0, 0]];
+    const { lossArray, epochs, task, iteration, progress } = this.state;
+
+    const header =
+      progress !== 0 ? (
+        <p className="section-description">
+          Task: {task} | iteration: {iteration} | Progress: {progress}%
+        </p>
+      ) : (
+        <p className="section-description">
+          To get started, click on the Train Model Button!
+        </p>
+      );
     return (
       <div className="Parallel">
         <br />
         <div className="section hero">
           <div className="container">
             <h3 className="section-heading">Need help getting started?</h3>
-            <p className="section-description">
-              To get started, click on the Train Model Button!
-            </p>
+            {header}
             <div className="sixteen columns">
               <div className="ten columns offset-by-one">
-                <h1>{this.state.path}</h1>
-                <LossChart
-                  lossArray={lossArray}
-                  epochs={this.state.epochs - 1}
-                />
+                <LossChart lossArray={lossArray} epochs={epochs - 1} />
                 <br />
                 {/* eslint-disable-next-line */}
                 <a
