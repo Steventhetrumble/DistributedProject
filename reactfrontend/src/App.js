@@ -9,13 +9,12 @@ import Comparison from './Comparison/Comparison';
 import Team from './Team/Team';
 
 class App extends Component {
- 
-  async openDrawerMenu(){
-    var x = document.getElementById("mainNavBar");
-    if (x.className === "navBar"){
-      x.className += " responsive";
+  async openDrawerMenu() {
+    var x = document.getElementById('mainNavBar');
+    if (x.className === 'navBar') {
+      x.className += ' responsive';
     } else {
-      x.className = "navBar";
+      x.className = 'navBar';
     }
   }
 
@@ -28,17 +27,19 @@ class App extends Component {
           <a href="/Parallel">Parallel</a>
           <a href="/Comparison">Comparison</a>
           <a href="/Team">Team</a>
-          <a className="icon" onClick={() => this.openDrawerMenu()}>&#9776;</a>
+          <button className="icon" onClick={() => this.openDrawerMenu()}>
+            &#9776;
+          </button>
         </div>
         <div className="section hero">
           <div className="container">
             <div className="sixteen columns">
               <div className="ten columns offset-by-one">
-                <Route path="/Home" component={Home}/>
-                <Route path="/Sequential" component={Sequential}/>
-                <Route path="/Parallel" component={Parallel}/>
-                <Route path="/Comparison" component={Comparison}/>
-                <Route path="/Team" component={Team}/>
+                <Route path="/Home" component={Home} />
+                <Route path="/Sequential" component={Sequential} />
+                <Route path="/Parallel" component={Parallel} />
+                <Route path="/Comparison" component={Comparison} />
+                <Route path="/Team" component={Team} />
               </div>
             </div>
           </div>
