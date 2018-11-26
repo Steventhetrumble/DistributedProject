@@ -9,8 +9,8 @@ class LossChart extends Component {
         eventName: 'select',
         callback(Chart) {
           console.log('Selected ', Chart.chart.getSelection());
-        },
-      },
+        }
+      }
     ];
     this.state = {
       options: {
@@ -37,15 +37,16 @@ class LossChart extends Component {
       columns: [
         {
           type: 'number',
-          label: 'Epoch',
+          label: 'Epoch'
         },
         {
           type: 'number',
-          label: 'Loss',
-        },
-      ],
+          label: 'Loss'
+        }
+      ]
     };
   }
+
   render() {
     return (
       <Chart

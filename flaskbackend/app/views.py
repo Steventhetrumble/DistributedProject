@@ -115,29 +115,41 @@ class ModelManagerView(ModelView):
         tfjs.converters.save_keras_model(model,"./app/static/" + project_name+"/Original/web" )
         # TODO: Download queue folder structure is not required
         for i in range(iterations):
+            download_base_url = "./app/static/{}/Download_Queue/{}".format(project_name, i)
+            upload_base_url = "./app/static/{}/Upload_Queue/{}".format(project_name, i)
+
+            # Remove directory and files from previous run
+            if os.path.exists(download_base_url):
+                os.remove("{}/*".format(download_base_url))
+
+            # Remove directory and files from previous run
+            if os.path.exists(upload_base_url):
+                os.remove("{}/*".format(upload_base_url))
+
+            if not os.path.exists(download_base_url):
+                os.mkdir(download_base_url)
+            
+            if not os.path.exists(upload_base_url):
+                os.mkdir(upload_base_url)
+            
             for j in range(splits):
                 is_created = False
                 # if not os.path.exists("./app/static/" + project_name + "/Original/web/"+str(i)):
                 #     os.mkdir("./app/static/" + project_name + "/Original/web/"+str(i))
 
-                if not os.path.exists("./app/static/" + project_name + "/Download_Queue/" + str(i)):
-                    os.mkdir("./app/static/" + project_name + "/Download_Queue/" + str(i))
                 
-                if not os.path.exists("./app/static/" + project_name + "/Upload_Queue/" + str(i)):
-                    os.mkdir("./app/static/" + project_name + "/Upload_Queue/" + str(i))
+                if not os.path.exists("{}/{}".format(upload_base_url, j)):
+                    os.mkdir("{}/{}".format(upload_base_url, j))
                 
-                if not os.path.exists( "./app/static/" + project_name + "/Upload_Queue/"  + str(i) + "/" + str(j) ):
-                    os.mkdir("./app/static/" + project_name + "/Upload_Queue/"  + str(i) + "/" + str(j) )
-                
-                if not os.path.exists("./app/static/" + project_name + "/Download_Queue/" + str(i) + "/" + str(j) ):
-                    os.mkdir("./app/static/" + project_name + "/Download_Queue/" + str(i) + "/" + str(j) )
+                if not os.path.exists("{}/{}".format(download_base_url, j)):
+                    os.mkdir("{}/{}".format(download_base_url, j))
                 
                 if i == 0:
-                    tfjs.converters.save_keras_model(model,"./app/static/" + project_name + "/Download_Queue/"+ str(i) + "/" + str(j) )
+                    tfjs.converters.save_keras_model(model, "{}/{}".format(download_base_url, j))
                     is_created = True
 
-                new_dqueue_member = DownloadModelsQueue(project_name =project_name,current_iteration =i,model_path =  str(i) + "/" + str(j), step =i*data_size + j*data_split_size, step_size = data_split_size, is_created=is_created)
-                new_uqueue_member = UploadModelsQueue(project_name =project_name, current_iteration = i , model_path = str(i) + "/" + str(j), step = i*data_size +j*data_split_size)
+                new_dqueue_member = DownloadModelsQueue(project_name=project_name, current_iteration=i, model_path="{}/{}".format(i, j), step =i*data_size + j*data_split_size, step_size = data_split_size, is_created=is_created)
+                new_uqueue_member = UploadModelsQueue(project_name=project_name, current_iteration=i , model_path="{}/{}".format(i, j), step = i*data_size +j*data_split_size)
                 session.add(new_dqueue_member)
                 session.add(new_uqueue_member)
                 session.commit()
