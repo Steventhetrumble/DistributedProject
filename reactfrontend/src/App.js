@@ -25,8 +25,8 @@ class App extends Component {
         <div className="navBar" id="mainNavBar">
           <a href="/Home">Home</a>
           <a href="/Sequential">Sequential</a>
-          <a href="/Parallel">Parallel</a>
-          <a href="/Comparison">Comparison</a>
+          <a href="/Choose/Parallel">Parallel</a>
+          <a href="/Choose/Comparison">Comparison</a>
           <a href="/Team">Team</a>
           <button className="icon" onClick={() => this.openDrawerMenu()}>
             &#9776;
@@ -36,12 +36,16 @@ class App extends Component {
           <div className="container">
             <div className="sixteen columns">
               <div className="ten columns offset-by-one">
-                <Route path="/Home" component={Home} />
-                <Route path="/Sequential/:project" component={Sequential} />
-                <Route exact path="/Parallel" component={ChooseProject} />
+                <Route exact path="/Choose/:dest" component={ChooseProject} />
+                <Route exact path="/Home" component={Home} />
+                <Route exact path="/Sequential" component={Sequential} />
                 <Route exact path="/Parallel/:project" component={Parallel} />
-                <Route path="/Comparison/:project" component={Comparison} />
-                <Route path="/Team" component={Team} />
+                <Route
+                  exact
+                  path="/Comparison/:project"
+                  component={Comparison}
+                />
+                <Route exact path="/Team" component={Team} />
               </div>
             </div>
           </div>

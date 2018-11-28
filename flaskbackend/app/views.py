@@ -35,20 +35,17 @@ class MyView(BaseView):
             time.sleep(1)
             appbuilder.get_app.logger.info("hey how are you")
 
-    @expose('/method1/<string:param1>')
-    def method1(self, param1):
-        # do something with param1
+    @expose('/get_model/<string:model>')
+    def get_model(self, model):
+        # do something with model
         # and return it
-        if(param1 == "model"):
+        if(model == "model"):
             return send_from_directory('./static/Sequential/SaveModel', "model.json")
-
         else:
-            return send_from_directory('./static/Sequential/SaveModel', param1)
+            return send_from_directory('./static/Sequential/SaveModel', model)
 
-    @expose('/method2/')
-    def method2(self):
-        # do something with param1
-        # and render it
+    @expose('/get_training_data/')
+    def get_training_data(self):
         threading.Thread(target=self.test_threads).start()
         df = pd.read_csv(
             "app/static/Sequential/ScaledData/sales_data_training_scaled.csv")
@@ -56,7 +53,16 @@ class MyView(BaseView):
         # index, columns, values, table
         return thing
 
-    @expose('/method3/', methods=['GET', 'POST'])
+    @expose('/get_testing_data/')
+    def get_testing_data(self):
+        threading.Thread(target=self.test_threads).start()
+        df = pd.read_csv(
+            "app/static/Sequential/ScaledData/sales_data_testing_scaled.csv")
+        thing = df.to_json(orient='values')
+        # index, columns, values, table
+        return thing
+
+    @expose('/put_final_model/', methods=['GET', 'POST'])
     def method3(self):
         if request.method == 'POST':
             appbuilder.get_app.logger.info(request.files)
@@ -64,9 +70,13 @@ class MyView(BaseView):
                 if a_file and self.allowed_file(a_file):
                     a_file_name = secure_filename(a_file)
                     a_file_target = os.path.join(
-                        appbuilder.get_app.config['UPLOAD_FOLDER'] + "/Sequential/Final", a_file_name)
+                        appbuilder.get_app.config['UPLOAD_FOLDER'] + "Sequential/Final", a_file_name)
                     file = request.files[a_file]
                     file.save(a_file_target)
+
+            model = get_keras_model("./app/static/Sequential/Final/model.json")
+            tfjs.converters.save_keras_model(
+                model, "./app/static/Sequential/Final")
             return redirect(request.url)
         return '''
     <!doctype html>
@@ -82,14 +92,26 @@ class MyView(BaseView):
         return '.' in filename and \
             filename.rsplit('.', 1)[1].lower() in self.ALLOWED_EXTENSIONS
 
+    @expose("/get_final_model/<string:model>")
+    def get_final_model(self, model):
+        if(model == "model"):
+            return send_from_directory('./static/Sequential/Final', "model.json")
+        else:
+            return send_from_directory('./static/Sequential/Final', model)
+
 
 class ModelManagerView(ModelView):
     route_base = "/Parallel"
     datamodel = SQLAInterface(ModelManager, db.session)
     list_columns = ["project_name", "label_index", "steps_per_iteration",
-                    "max_steps", "steps_complete", "Data_Size", "Data_Split_Size"]
+                    "max_steps", "steps_complete", "Data_Size", "Data_Split_Size", "is_combining"]
     ALLOWED_EXTENSIONS = set(
         ['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'bin', 'json', '.h5'])
+
+    add_columns = ["project_name", "steps_per_iteration",
+                   "max_steps", "Data_Size", "Data_Split_Size", "label_index"]
+    edit_columns = ["project_name", "steps_per_iteration", "max_steps",
+                    "steps_complete", "Data_Size", "Data_Split_Size", "label_index"]
 
     @expose("/get_label_index/<string:project_name>")
     def get_label_index(self, project_name):
@@ -130,6 +152,9 @@ class ModelManagerView(ModelView):
         # TODO: model name needs to be stored
         tfjs.converters.save_keras_model(
             model, "./app/static/" + project_name+"/Original/web")
+
+        session.query(DownloadModelsQueue).delete()
+        session.query(UploadModelsQueue).delete()
 
         for i in range(iterations):
             download_base_url = "./app/static/{}/Download_Queue/{}".format(
@@ -307,10 +332,17 @@ class ModelManagerView(ModelView):
             return False
 
     def check_and_combine(self, project):
-        appbuilder.get_app.logger.info(project)
-        if(self.check_if_iteration_is_complete(project)):
+        session = self.datamodel.session()
+        model_manager = session.query(ModelManager).filter(
+            ModelManager.project_name == project).first()
 
+        appbuilder.get_app.logger.info(project)
+        if self.check_if_iteration_is_complete(project) and not model_manager.is_combining:
+            model_manager.is_combining = True
+            session.commit()
             self.combine_model(project)
+            model_manager.is_combining = False
+            session.commit()
 
     @expose('/put_model/<string:project>/<string:iteration>/<string:task_number>/<string:loss>', methods=['GET', 'POST'])
     def put_model(self, project, iteration, task_number, loss):
@@ -362,8 +394,6 @@ class ModelManagerView(ModelView):
 
         data_size = model_manager.Data_Size
         appbuilder.get_app.logger.info(data_size)
-
-        iterations = max_steps/data_size
 
         data_split_size = model_manager.Data_Split_Size
         appbuilder.get_app.logger.info(data_split_size)
@@ -563,7 +593,6 @@ db.create_all()
 
 def average_combine(model_list):
     output_model = clone_model(model_list[0])
-    output_model
     for layer in enumerate(model_list[0].layers):
         # retrieve weights for the layer from the first model in the list
         layer_index = layer[0]

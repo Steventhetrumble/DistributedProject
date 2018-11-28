@@ -2,10 +2,11 @@ import React, { Component } from 'react';
 import { Link } from 'react-router-dom';
 
 export class ChooseProject extends Component {
-  constructor() {
-    super();
+  constructor(props) {
+    super(props);
 
     this.state = {
+      dest: this.props.match.params.dest,
       projects: [],
       project: ''
     };
@@ -14,7 +15,7 @@ export class ChooseProject extends Component {
   }
 
   async componentWillMount() {
-    const res = await fetch(`/Parallel/list_models`);
+    const res = await fetch(`/${this.state.dest}/list_models`);
     const projects = await res.json();
 
     this.setState({ projects, project: projects[0] });
@@ -44,7 +45,7 @@ export class ChooseProject extends Component {
             ))}
           </select>
           <Link
-            to={`/Parallel/${project}`}
+            to={`/${this.state.dest}/${project}`}
             className="button button-primary one-third column"
           >
             Submit
@@ -58,7 +59,9 @@ export class ChooseProject extends Component {
         <br />
         <div className="section hero">
           <div className="container">
-            <h3 className="section-heading">Parallel | Choose Project</h3>
+            <h3 className="section-heading">
+              {this.state.dest} | Choose Project
+            </h3>
             {projectSelect}
           </div>
         </div>

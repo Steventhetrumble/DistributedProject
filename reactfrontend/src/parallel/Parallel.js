@@ -2,12 +2,14 @@ import React, { Component } from 'react';
 import './Parallel.css';
 import * as tf from '@tensorflow/tfjs';
 import LossChart from '../LossChart/LossChart';
+import classNames from 'classnames';
 
 class Parallel extends Component {
   constructor(props) {
     super(props);
 
     this.state = {
+      training: false,
       project: this.props.match.params.project,
       path: '',
       task: null,
@@ -39,6 +41,8 @@ class Parallel extends Component {
   }
 
   async trainModel() {
+    this.setState({ training: true });
+
     for (let i = 0; i < this.state.iterationCount; i++) {
       try {
         const status = await fetch(
@@ -147,6 +151,8 @@ class Parallel extends Component {
 
       // this.setState({lossArray:h.history.loss})
     }
+
+    this.setState({ training: false });
   }
 
   getProgress() {
@@ -166,6 +172,7 @@ class Parallel extends Component {
 
   render() {
     const {
+      training,
       path,
       lossArray,
       epochs,
@@ -222,8 +229,15 @@ class Parallel extends Component {
                     ))}
                   </select>
                   <button
-                    className="button button-primary eight columns"
+                    className={classNames({
+                      button: !training,
+                      eight: true,
+                      columns: true,
+                      'button-primary': !training
+                    })}
+                    style={{ cursor: training ? 'progress' : 'pointer' }}
                     onClick={() => this.trainModel()}
+                    disabled={training}
                   >
                     {path !== 'complete'
                       ? 'Start Training Model'

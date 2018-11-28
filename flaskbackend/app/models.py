@@ -10,10 +10,11 @@ class ModelManager(Model):
     project_name = Column(String(100), unique=True, nullable=False)
     steps_per_iteration = Column(Integer)
     max_steps = Column(Integer)
-    steps_complete = Column(Integer)
+    steps_complete = Column(Integer, default=0)
     Data_Size = Column(Integer)
     Data_Split_Size = Column(Integer)
     label_index = Column(Integer)
+    is_combining = Column(Boolean, default=False)
 
     def __repr__(self):
         return self.project_name

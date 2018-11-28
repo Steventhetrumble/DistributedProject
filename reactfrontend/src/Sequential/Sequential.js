@@ -3,102 +3,152 @@ import React, { Component } from 'react';
 import './Sequential.css';
 import * as tf from '@tensorflow/tfjs';
 import LossChart from '../LossChart/LossChart';
+import classNames from 'classnames';
 
 class Sequential extends Component {
-  constructor(){
+  constructor() {
     super();
-    this.state={
-      model:{},
-      X:[],
-      Y:[],
-      epochs:20,
+    this.state = {
+      training: false,
+      complete: false,
+      model: {},
+      X: [],
+      Y: [],
+      epochs: [1, 5, 10, 15, 20],
+      epochsCount: 20,
       learningRate: 0.1,
-      lossArray:[]
-    }
-  }
-  
-  async componentDidMount(){
-    try{
-      
-      const tempmodel = await tf.loadModel(tf.io.browserHTTPRequest('http://127.0.0.1:8080/Sequential/method1/model'))
-      this.setState({model:tempmodel })
+      lossArray: []
+    };
 
-      const res = await fetch('http://127.0.0.1:8080/Sequential/method2/')
+    this.onChange = this.onChange.bind(this);
+  }
+
+  async componentDidMount() {
+    try {
+      const tempmodel = await tf.loadModel(
+        tf.io.browserHTTPRequest('/Sequential/get_model/model')
+      );
+      this.setState({ model: tempmodel });
+
+      const res = await fetch('/Sequential/get_training_data/');
       var tempX = [];
       var tempY = [];
-      
-      await res.json().then(element => {
-       element.forEach(element => {
-        var i;
-        var littlex=[];
-        
-        for(i = 0 ; i < element.length ; i ++){
-          //The seventh index is the scaled estimated cost in this model-- the label
-          if(i === 8){
-            tempY.push(element[i])
-          }
-          else littlex.push(element[i])
-        }
-        tempX.push(littlex);
-       });        
-      });
-      
-      this.setState({
-        X:tempX,
-        Y:tempY,
-      })
-      console.log("did mount")
 
-    }catch(e){
+      await res.json().then(element => {
+        element.forEach(element => {
+          var i;
+          var littlex = [];
+
+          for (i = 0; i < element.length; i++) {
+            //The seventh index is the scaled estimated cost in this model-- the label
+            if (i === 8) {
+              tempY.push(element[i]);
+            } else littlex.push(element[i]);
+          }
+          tempX.push(littlex);
+        });
+      });
+
+      this.setState({
+        X: tempX,
+        Y: tempY
+      });
+    } catch (e) {
       console.log(e);
     }
-
   }
-  async trainModel(){
+  async trainModel() {
+    this.setState({ training: true });
     // console.log(this.state.Y);
     const xs = tf.tensor2d(this.state.X);
     const ys = tf.tensor1d(this.state.Y);
-    this.state.model.compile({optimizer: 'adam', loss: 'meanSquaredError'});
+    this.state.model.compile({ optimizer: 'adam', loss: 'meanSquaredError' });
     var tempArray = [];
-    const h = await this.state.model.fit(xs,ys,{
+    const h = await this.state.model.fit(xs, ys, {
       batchSize: 5,
-      epochs: this.state.epochs,
+      epochs: this.state.epochsCount,
       callbacks: {
         onEpochEnd: async (epoch, log) => {
-          console.log(`Epoch ${epoch }: loss = ${log.loss}`);
-          tempArray.push([epoch+1 ,log.loss]);
+          console.log(`Epoch ${epoch}: loss = ${log.loss}`);
+          tempArray.push([epoch + 1, log.loss]);
         }
       }
     });
     console.log(h.history.loss);
-    const resultOfSave = await this.state.model.save(tf.io.browserHTTPRequest('http://127.0.0.1:8080/Sequential/method3/'));
-    await this.setState({lossArray:tempArray});
-    console.log(resultOfSave)
+    const resultOfSave = await this.state.model.save(
+      tf.io.browserHTTPRequest('/Sequential/put_final_model/')
+    );
+    await this.setState({ lossArray: tempArray });
+    console.log(this.state.lossArray);
+    console.log(resultOfSave);
     // console.log("Loss after Epoch:" + h.history.loss[0]);
-    
-    // this.setState({lossArray:h.history.loss})
 
+    // this.setState({lossArray:h.history.loss})
+    this.setState({ training: false, complete: true });
   }
 
+  onChange(event) {
+    this.setState({ epochsCount: event.target.value });
+  }
 
   render() {
-    let lossArray = this.state.lossArray.length ? this.state.lossArray : [[0,0]];
+    const { lossArray, epochs, epochsCount, training, complete } = this.state;
+
     return (
       <div className="Sequential">
-        <br/>
+        <br />
         <div className="section hero">
           <div className="container">
             <h3 className="section-heading">Need help getting started?</h3>
-            <p className="section-description">To get started, click on the Train Model Button!</p>
+            <p className="section-description">
+              To get started, click on the Train Model Button!
+            </p>
             <div className="sixteen columns">
               <div className="ten columns offset-by-one">
-                <LossChart lossArray={lossArray} epochs={this.state.epochs - 1} />
-                <br/>
-                {/* eslint-disable-next-line */}
-                <a className="button button-primary" onClick={() => this.trainModel()}>Start Training Model</a>
+                <LossChart lossArray={lossArray} epochs={epochsCount - 1} />
+                <br />
+                {lossArray.length > 0 ? (
+                  <h5>
+                    Current Loss:{' '}
+                    {parseFloat(lossArray[lossArray.length - 1][1]).toFixed(9)}
+                  </h5>
+                ) : (
+                  ''
+                )}
+                <div className="row">
+                  <select
+                    name="epochs"
+                    id="epochs"
+                    className="two columns"
+                    value={epochsCount}
+                    onChange={this.onChange}
+                  >
+                    {epochs.map(epoch => (
+                      <option value={epoch} key={epoch}>
+                        {epoch}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    className={classNames({
+                      button: !training,
+                      eight: true,
+                      columns: true,
+                      'button-primary': !training
+                    })}
+                    style={{ cursor: training ? 'progress' : 'pointer' }}
+                    onClick={() => this.trainModel()}
+                    disabled={training}
+                  >
+                    {!complete
+                      ? training
+                        ? 'Training...'
+                        : 'Start Training Model'
+                      : 'Training Complete'}
+                  </button>
+                </div>
               </div>
             </div>
-            
           </div>
         </div>
       </div>
