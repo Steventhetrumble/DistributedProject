@@ -26,7 +26,7 @@ class App extends Component {
           <a href="/Home">Home</a>
           <a href="/Sequential">Sequential</a>
           <a href="/Choose/Parallel">Parallel</a>
-          <a href="/Choose/Comparison">Comparison</a>
+          <a href="/Comparison">Comparison</a>
           <a href="/Team">Team</a>
           <button className="icon" onClick={() => this.openDrawerMenu()}>
             &#9776;
@@ -36,15 +36,11 @@ class App extends Component {
           <div className="container">
             <div className="sixteen columns">
               <div className="ten columns offset-by-one">
-                <Route exact path="/Choose/:dest" component={ChooseProject} />
                 <Route exact path="/Home" component={Home} />
+                <Route exact path="/Choose" component={ChooseProject} />
                 <Route exact path="/Sequential" component={Sequential} />
                 <Route exact path="/Parallel/:project" component={Parallel} />
-                <Route
-                  exact
-                  path="/Comparison/:project"
-                  component={Comparison}
-                />
+                <Route exact path="/Comparison" component={Comparison} />
                 <Route exact path="/Team" component={Team} />
               </div>
             </div>

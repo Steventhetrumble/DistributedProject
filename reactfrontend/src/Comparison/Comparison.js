@@ -1,33 +1,38 @@
 import React, { Component } from 'react';
-//import logo from './logo.svg';
-import './Comparison.css';
 import * as tf from '@tensorflow/tfjs';
 import LossChart from '../LossChart/LossChart';
+import classNames from 'classnames';
 
 class Comparison extends Component {
   constructor() {
     super();
     this.state = {
+      training: false,
+      complete: false,
       model: {},
       X: [],
       Y: [],
-      epochs: 5,
-      learningRate: 0.05,
-      lossArray: []
+      seq_results: [],
+      seq_result: null
     };
+
+    this.onChange = this.onChange.bind(this);
   }
 
   async componentDidMount() {
     try {
+      console.log('mounting');
       const tempmodel = await tf.loadModel(
-        tf.io.browserHTTPRequest('/myview/method1/model')
+        tf.io.browserHTTPRequest('/Sequential/get_final_model/model')
       );
       this.setState({ model: tempmodel });
-
-      const res = await fetch('/myview/method2/');
+      console.log('getting');
+      const res = await fetch('/Sequential/get_testing_data');
       var tempX = [];
       var tempY = [];
+      console.log('got');
 
+      console.log(res);
       await res.json().then(element => {
         element.forEach(element => {
           var i;
@@ -52,59 +57,76 @@ class Comparison extends Component {
     }
   }
   async trainModel() {
-    // console.log(this.state.Y);
-    const xs = tf.tensor2d(this.state.X);
-    const ys = tf.tensor1d(this.state.Y);
-    this.state.model.compile({ optimizer: 'adam', loss: 'meanSquaredError' });
-    var tempArray = [];
-    const h = await this.state.model.fit(xs, ys, {
-      batchSize: 5,
-      epochs: this.state.epochs,
-      callbacks: {
-        onEpochEnd: async (epoch, log) => {
-          console.log(`Epoch ${epoch}: loss = ${log.loss}`);
-          tempArray.push([epoch, log.loss]);
-        }
-      }
+    this.setState({ training: true });
+    let predictions;
+    await tf.tidy(() => {
+      console.log(this.state.X);
+      const xs = tf.tensor2d(this.state.X);
+      predictions = this.state.model.predict(xs).dataSync();
     });
-    console.log(h.history.loss);
-    const resultOfSave = await this.state.model.save(
-      tf.io.browserHTTPRequest('/myview/method3/')
-    );
-    await this.setState({ lossArray: tempArray });
-    console.log(resultOfSave);
-    // console.log("Loss after Epoch:" + h.history.loss[0]);
 
-    // this.setState({lossArray:h.history.loss})
+    const results = [];
+    let result;
+    await tf.tidy(() => {
+      result = tf.losses.meanSquaredError(this.state.Y, predictions).dataSync();
+      predictions.forEach((prediction, index) => {
+        results.push([
+          index,
+          tf.losses.meanSquaredError(this.state.Y[index], prediction).dataSync()
+        ]);
+      });
+    });
+
+    this.setState({
+      seq_results: results,
+      seq_result: result,
+      training: false,
+      complete: true
+    });
+  }
+
+  onChange(event) {
+    this.setState({ epochsCount: event.target.value });
   }
 
   render() {
-    let lossArray = this.state.lossArray.length
-      ? this.state.lossArray
-      : [[0, 0]];
+    const { seq_results, seq_result, testing, complete } = this.state;
+
     return (
-      <div className="Comparison">
+      <div>
         <br />
         <div className="section hero">
           <div className="container">
-            <h3 className="section-heading">Need help getting started?</h3>
+            <h3 className="section-heading">Comparison</h3>
             <p className="section-description">
               To get started, click on the Train Model Button!
             </p>
             <div className="sixteen columns">
               <div className="ten columns offset-by-one">
-                <LossChart
-                  lossArray={lossArray}
-                  epochs={this.state.epochs - 1}
-                />
+                <LossChart lossArray={seq_results} epochs={20} />
                 <br />
-                {/* eslint-disable-next-line */}
-                <a
-                  className="button button-primary"
+                {seq_results.length > 0 ? (
+                  <h5>
+                    Mean Squared Error: {parseFloat(seq_result).toFixed(9)}
+                  </h5>
+                ) : (
+                  ''
+                )}
+                <button
+                  className={classNames({
+                    button: !testing,
+                    'button-primary': !testing
+                  })}
+                  style={{ cursor: testing ? 'progress' : 'pointer' }}
                   onClick={() => this.trainModel()}
+                  disabled={testing}
                 >
-                  Start Training Model
-                </a>
+                  {!complete
+                    ? testing
+                      ? 'Testing...'
+                      : 'Start testing Model'
+                    : 'Testing Complete'}
+                </button>
               </div>
             </div>
           </div>
