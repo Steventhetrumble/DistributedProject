@@ -13,7 +13,7 @@ class ModelManager(Model):
     steps_complete = Column(Integer)
     Data_Size = Column(Integer)
     Data_Split_Size = Column(Integer)
-    parameters = Column(String(300))
+    label_index = Column(Integer)
 
     def __repr__(self):
         return self.project_name

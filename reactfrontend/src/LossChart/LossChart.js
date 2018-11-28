@@ -16,7 +16,11 @@ class LossChart extends Component {
       options: {
         title: 'Epoch vs. Loss comparison',
         hAxis: { title: 'Epoch', minValue: 0, maxValue: props.epochs },
-        vAxis: { title: 'Loss', minValue: 0, maxValue: 0.001 },
+        vAxis: {
+          title: 'Loss',
+          minValue: 0,
+          maxValue: 0.001
+        },
         legend: 'none',
         explorer: {
           actions: ['dragToZoom', 'rightClickToReset'],

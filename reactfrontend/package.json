@@ -26,5 +26,6 @@
     "not ie <= 11",
     "not op_mini all"
   ],
-  "devDependencies": {}
+  "devDependencies": {},
+  "proxy": "http://127.0.0.1:8080"
 }

@@ -7,6 +7,7 @@ import Parallel from './parallel/Parallel';
 import Home from './Home/Home';
 import Comparison from './Comparison/Comparison';
 import Team from './Team/Team';
+import ChooseProject from './ChooseProject/ChooseProject';
 
 class App extends Component {
   async openDrawerMenu() {
@@ -36,9 +37,10 @@ class App extends Component {
             <div className="sixteen columns">
               <div className="ten columns offset-by-one">
                 <Route path="/Home" component={Home} />
-                <Route path="/Sequential" component={Sequential} />
-                <Route path="/Parallel" component={Parallel} />
-                <Route path="/Comparison" component={Comparison} />
+                <Route path="/Sequential/:project" component={Sequential} />
+                <Route exact path="/Parallel" component={ChooseProject} />
+                <Route exact path="/Parallel/:project" component={Parallel} />
+                <Route path="/Comparison/:project" component={Comparison} />
                 <Route path="/Team" component={Team} />
               </div>
             </div>

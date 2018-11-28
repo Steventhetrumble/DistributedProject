@@ -31,7 +31,7 @@ class MyView(BaseView):
         ['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'bin', 'json'])
 
     def test_threads(self):
-        for i in range(2):
+        for _ in range(2):
             time.sleep(1)
             appbuilder.get_app.logger.info("hey how are you")
 
@@ -86,18 +86,26 @@ class MyView(BaseView):
 class ModelManagerView(ModelView):
     route_base = "/Parallel"
     datamodel = SQLAInterface(ModelManager, db.session)
-    list_columns = ["project_name", "parameters", "steps_per_iteration",
+    list_columns = ["project_name", "label_index", "steps_per_iteration",
                     "max_steps", "steps_complete", "Data_Size", "Data_Split_Size"]
     ALLOWED_EXTENSIONS = set(
-        ['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'bin', 'json'])
+        ['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'bin', 'json', '.h5'])
+
+    @expose("/get_label_index/<string:project_name>")
+    def get_label_index(self, project_name):
+        session = self.datamodel.session()
+        res = session.query(ModelManager.label_index).filter(
+            ModelManager.project_name == project_name).first()
+        return jsonify(res)
 
     @expose("/list_models/")
     def list_models(self):
         session = self.datamodel.session()
         res = session.query(ModelManager.project_name).all()
-        pre_result = str(res)
-        result = "{" + pre_result + "}"
-        return result
+        projects = []
+        for r in res:
+            projects.append(r[0])
+        return jsonify(projects)
 
     @expose("/create_download_queue/<string:project_name>")
     def create_download_queue(self, project_name):
@@ -122,7 +130,7 @@ class ModelManagerView(ModelView):
         # TODO: model name needs to be stored
         tfjs.converters.save_keras_model(
             model, "./app/static/" + project_name+"/Original/web")
-        # TODO: Download queue folder structure is not required
+
         for i in range(iterations):
             download_base_url = "./app/static/{}/Download_Queue/{}".format(
                 project_name, i)
@@ -215,7 +223,6 @@ class ModelManagerView(ModelView):
             path = self.check_dq(res.project_name)
             return jsonify({'result': path})
 
-    @expose("/check_model_for_up/<string:project>/<string:iteration>/<string:task_number>")
     def check_model_for_up(self, project, iteration, task_number):
         path = iteration + "/" + task_number
         session = self.datamodel.session()
@@ -240,10 +247,7 @@ class ModelManagerView(ModelView):
         session = self.datamodel.session()
         res = session.query(UploadModelsQueue).filter(and_(
             UploadModelsQueue.project_name == project, UploadModelsQueue.model_path == path)).first()
-        if(res.is_uploaded == False):
-            return "ok"
-        else:
-            return ""
+        return res.is_uploaded
 
     def check_dq(self, project):
         session = self.datamodel.session()
@@ -311,6 +315,7 @@ class ModelManagerView(ModelView):
     @expose('/put_model/<string:project>/<string:iteration>/<string:task_number>/<string:loss>', methods=['GET', 'POST'])
     def put_model(self, project, iteration, task_number, loss):
         path = iteration + "/" + task_number
+
         session = self.datamodel.session()
         download_models_queue = session.query(DownloadModelsQueue).filter(and_(
             DownloadModelsQueue.project_name == project, DownloadModelsQueue.model_path == path)).first()
@@ -331,8 +336,9 @@ class ModelManagerView(ModelView):
             upload_models_queue.is_uploaded = True
             upload_models_queue.loss = float(loss)
             session.commit()
-            threading.Thread(target=self.check_and_combine,
-                             args=(project,)).start()
+            # threading.Thread(target=self.check_and_combine,
+            #                  args=(project,)).start()
+            self.check_and_combine(project)
             return redirect(request.url)
 
         return '''
@@ -400,6 +406,105 @@ class ModelManagerView(ModelView):
                 task.is_created = True
                 session.commit()
         del out_model
+
+    @action("create_project", "Create project directory", "Create?", "fa-rocket", single=True)
+    def create_project(self, items):
+        if not os.path.exists("./app/static/{}/Data".format(items[0].project_name)):
+            os.makedirs(
+                "./app/static/{}/Data".format(items[0].project_name), exist_ok=True)
+
+        if not os.path.exists("./app/static/{}/Download_Queue".format(items[0].project_name)):
+            os.makedirs(
+                "./app/static/{}/Download_Queue".format(items[0].project_name), exist_ok=True)
+
+        if not os.path.exists("./app/static/{}/Upload_Queue".format(items[0].project_name)):
+            os.makedirs(
+                "./app/static/{}/Upload_Queue".format(items[0].project_name), exist_ok=True)
+
+        final_url = "./app/static/{}/Final".format(
+            items[0].project_name)
+
+        # Remove final files
+        if os.path.exists(final_url):
+            shutil.rmtree(final_url)
+
+        if not os.path.exists(final_url):
+            os.makedirs(
+                final_url, exist_ok=True)
+
+        if not os.path.exists("./app/static/{}/Original/Keras".format(items[0].project_name)):
+            os.makedirs(
+                "./app/static/{}/Original/Keras".format(items[0].project_name), exist_ok=True)
+
+        if not os.path.exists("./app/static/{}/Original/web".format(items[0].project_name)):
+            os.makedirs(
+                "./app/static/{}/Original/web".format(items[0].project_name), exist_ok=True)
+
+        self.update_redirect()
+        return redirect(self.get_redirect())
+
+    @expose('/upload_original_model/<string:project>', methods=['GET', 'POST'])
+    def upload_original_model(self, project):
+        if request.method == 'POST':
+            appbuilder.get_app.logger.info(request.files)
+            for a_file in request.files:
+                if a_file:
+                    a_file_target = os.path.join(
+                        "{}/{}/Original/Keras".format(appbuilder.get_app.config['UPLOAD_FOLDER'], project), "trained_model.h5")
+                    file = request.files[a_file]
+                    file.save(a_file_target)
+            return redirect("/Parallel/upload_training_data/{}".format(project))
+        return '''
+    <!doctype html>
+    <title>Upload new File</title>
+    <h1>Upload Keras Model</h1>
+    <form method=post enctype=multipart/form-data>
+      <input type=file name=file>
+      <input type=submit value=Upload>
+    </form>
+    '''
+
+    @expose('/upload_training_data/<string:project>', methods=['GET', 'POST'])
+    def upload_training_data_model(self, project):
+        if request.method == 'POST':
+            appbuilder.get_app.logger.info(request.files)
+            for a_file in request.files:
+                if a_file:
+                    a_file_target = os.path.join(
+                        "{}/{}/Data".format(appbuilder.get_app.config['UPLOAD_FOLDER'], project), "training_data.csv")
+                    file = request.files[a_file]
+                    file.save(a_file_target)
+            return redirect("/Parallel/upload_testing_data/{}".format(project))
+        return '''
+    <!doctype html>
+    <title>Upload new File</title>
+    <h1>Upload Training Data</h1>
+    <form method=post enctype=multipart/form-data>
+      <input type=file name=file>
+      <input type=submit value=Upload>
+    </form>
+    '''
+
+    @expose('/upload_testing_data/<string:project>', methods=['GET', 'POST'])
+    def upload_testing_data(self, project):
+        if request.method == 'POST':
+            appbuilder.get_app.logger.info(request.files)
+            for a_file in request.files:
+                if a_file:
+                    a_file_target = os.path.join(
+                        "{}/{}/Data".format(appbuilder.get_app.config['UPLOAD_FOLDER'], project), "testing_data.csv")
+                    file = request.files[a_file]
+                    file.save(a_file_target)
+            return redirect("/Parallel/create_download_queue/{}".format(project))
+        return '''
+    <!doctype html>
+    <title>Upload new File</title>
+    <h1>Upload Testing Data</h1>
+    <form method=post enctype=multipart/form-data>
+      <input type=file name=file>
+      <input type=submit value=Upload>
+    </form>
+    '''
 
 
 class DownloadModelsQueueView(ModelView):
