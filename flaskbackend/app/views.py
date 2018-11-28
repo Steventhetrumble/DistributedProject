@@ -60,6 +60,7 @@ class MyView(BaseView):
             "app/static/Sequential/ScaledData/sales_data_testing_scaled.csv")
         thing = df.to_json(orient='values')
         # index, columns, values, table
+        appbuilder.get_app.logger.info(thing)
         return thing
 
     @expose('/put_final_model/', methods=['GET', 'POST'])
@@ -70,13 +71,14 @@ class MyView(BaseView):
                 if a_file and self.allowed_file(a_file):
                     a_file_name = secure_filename(a_file)
                     a_file_target = os.path.join(
-                        appbuilder.get_app.config['UPLOAD_FOLDER'] + "Sequential/Final", a_file_name)
+                        appbuilder.get_app.config['UPLOAD_FOLDER'] + "Sequential/Final/up", a_file_name)
                     file = request.files[a_file]
                     file.save(a_file_target)
 
-            model = get_keras_model("./app/static/Sequential/Final/model.json")
+            model = get_keras_model(
+                "./app/static/Sequential/Final/up/model.json")
             tfjs.converters.save_keras_model(
-                model, "./app/static/Sequential/Final")
+                model, "./app/static/Sequential/Final/converted")
             return redirect(request.url)
         return '''
     <!doctype html>
@@ -95,9 +97,9 @@ class MyView(BaseView):
     @expose("/get_final_model/<string:model>")
     def get_final_model(self, model):
         if(model == "model"):
-            return send_from_directory('./static/Sequential/Final', "model.json")
+            return send_from_directory('./static/Sequential/Final/converted', "model.json")
         else:
-            return send_from_directory('./static/Sequential/Final', model)
+            return send_from_directory('./static/Sequential/Final/converted', model)
 
 
 class ModelManagerView(ModelView):
