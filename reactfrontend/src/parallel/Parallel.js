@@ -1,8 +1,8 @@
 import React, { Component } from 'react';
 import './Parallel.css';
 import * as tf from '@tensorflow/tfjs';
-import LossChart from '../LossChart/LossChart';
 import classNames from 'classnames';
+import ApexLossChart from '../ApexLossChart/ApexLossChart';
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -25,24 +25,27 @@ class Parallel extends Component {
       Y: [],
       epoch: 0,
       learningRate: 0.1,
-      lossArray: [[0, 0]],
+      lossArray: [],
       iterationCount: 1,
-      iterations: [1, 5, 10, 15]
+      iterations: [1, 5, 10, 15],
+      flatData: []
     };
 
     this.onIterationsChange = this.onIterationsChange.bind(this);
   }
 
-  componentWillMount() {
-    this.getLossResults();
-    this.getProgress();
+  async componentWillMount() {
+    await this.getLossResults();
+    await this.getProgress();
   }
 
   async getLossResults() {
     const res = await fetch(`/Parallel/get_loss/${this.state.project}`);
 
     const data = await res.json();
-    this.setState({ lossArray: data });
+    const flatData = await data.map(entry => entry[1][0]);
+
+    this.setState({ lossArray: data, flatData });
   }
 
   async trainModel() {
@@ -120,7 +123,7 @@ class Parallel extends Component {
           loss: 'meanSquaredError'
         });
         let tempArray = [];
-        const h = await this.state.model.fit(xs, ys, {
+        await this.state.model.fit(xs, ys, {
           batchSize: 5,
           epochs: 1,
           callbacks: {
@@ -134,26 +137,13 @@ class Parallel extends Component {
         const resultPath = `/Parallel/put_model/${this.state.project}/${path}/${
           tempArray[1]
         }`;
-        const resultOfSave = await this.state.model.save(
-          tf.io.browserHTTPRequest(resultPath)
-        );
-        // await this.setState({
-        //   lossArray: this.state.lossArray.concat(tempArray)
-        // });
-        // await this.state.lossArray.push(tempArray);
+        await this.state.model.save(tf.io.browserHTTPRequest(resultPath));
 
         await this.getLossResults();
         await this.getProgress();
-        // console.log(resultOfSave);
       } catch (e) {
         console.log(e);
       }
-
-      // console.log(this.state.Y);
-
-      // console.log("Loss after Epoch:" + h.history.loss[0]);
-
-      // this.setState({lossArray:h.history.loss})
     }
 
     this.setState({ complete: true, training: false });
@@ -179,11 +169,11 @@ class Parallel extends Component {
       complete,
       training,
       lossArray,
-      epochs,
       task,
       iteration,
       progress,
-      iterations
+      iterations,
+      flatData
     } = this.state;
 
     const header =
@@ -203,53 +193,48 @@ class Parallel extends Component {
           <div className="container">
             <h3 className="section-heading">Parallel</h3>
             {header}
-            <div className="sixteen columns">
-              <div className="ten columns offset-by-one">
-                <LossChart lossArray={lossArray} epochs={epochs - 1} />
-                <br />
-                {lossArray.length > 0 ? (
-                  <h5>
-                    Current Loss:{' '}
-                    {parseFloat(lossArray[lossArray.length - 1][1][0]).toFixed(
-                      9
-                    )}
-                  </h5>
-                ) : (
-                  ''
-                )}
-                <div className="row">
-                  <select
-                    className="two columns"
-                    name="iterations"
-                    id="iterations"
-                    value={this.state.iterationCount}
-                    onChange={this.onIterationsChange}
-                  >
-                    {iterations.map(iter => (
-                      <option value={iter} key={iter}>
-                        {iter}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    className={classNames({
-                      button: !training,
-                      eight: true,
-                      columns: true,
-                      'button-primary': !training
-                    })}
-                    style={{ cursor: training ? 'progress' : 'pointer' }}
-                    onClick={() => this.trainModel()}
-                    disabled={training}
-                  >
-                    {!complete
-                      ? training
-                        ? 'Training...'
-                        : 'Start Training Model'
-                      : 'Training Complete'}
-                  </button>
-                </div>
-              </div>
+            {/* <LossChart lossArray={lossArray} epochs={epochs - 1} /> */}
+            <ApexLossChart series={flatData} />
+            <br />
+            {lossArray.length > 0 ? (
+              <h5>
+                Current Loss:{' '}
+                {parseFloat(lossArray[lossArray.length - 1][1][0]).toFixed(9)}
+              </h5>
+            ) : (
+              ''
+            )}
+            <div className="row">
+              <select
+                className="two columns"
+                name="iterations"
+                id="iterations"
+                value={this.state.iterationCount}
+                onChange={this.onIterationsChange}
+              >
+                {iterations.map(iter => (
+                  <option value={iter} key={iter}>
+                    {iter}
+                  </option>
+                ))}
+              </select>
+              <button
+                className={classNames({
+                  button: !training,
+                  eight: true,
+                  columns: true,
+                  'button-primary': !training
+                })}
+                style={{ cursor: training ? 'progress' : 'pointer' }}
+                onClick={() => this.trainModel()}
+                disabled={training}
+              >
+                {!complete
+                  ? training
+                    ? 'Training...'
+                    : 'Start Training Model'
+                  : 'Training Complete'}
+              </button>
             </div>
           </div>
         </div>

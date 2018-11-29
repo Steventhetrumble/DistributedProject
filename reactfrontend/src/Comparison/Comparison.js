@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import * as tf from '@tensorflow/tfjs';
-import LossChart from '../LossChart/LossChart';
 import classNames from 'classnames';
+import ApexLossChart from '../ApexLossChart/ApexLossChart';
 
 class Comparison extends Component {
   constructor() {
@@ -12,8 +12,8 @@ class Comparison extends Component {
       model: {},
       X: [],
       Y: [],
-      seq_results: [],
-      seq_result: null
+      results: [],
+      result: null
     };
 
     this.onChange = this.onChange.bind(this);
@@ -56,7 +56,6 @@ class Comparison extends Component {
     this.setState({ training: true });
     let predictions;
     await tf.tidy(() => {
-      console.log(this.state.X);
       const xs = tf.tensor2d(this.state.X);
       predictions = this.state.model.predict(xs).dataSync();
     });
@@ -66,16 +65,21 @@ class Comparison extends Component {
     await tf.tidy(() => {
       result = tf.losses.meanSquaredError(this.state.Y, predictions).dataSync();
       predictions.forEach((prediction, index) => {
-        results.push([
-          index,
-          tf.losses.meanSquaredError(this.state.Y[index], prediction).dataSync()
-        ]);
+        // results.push([
+        //   index,
+        //   tf.losses.meanSquaredError(this.state.Y[index], prediction).dataSync()
+        // ]);
+        results.push(
+          tf.losses
+            .meanSquaredError(this.state.Y[index], prediction)
+            .dataSync()[0]
+        );
       });
     });
 
     this.setState({
-      seq_results: results,
-      seq_result: result,
+      results,
+      result,
       training: false,
       complete: true
     });
@@ -86,7 +90,7 @@ class Comparison extends Component {
   }
 
   render() {
-    const { seq_results, seq_result, testing, complete } = this.state;
+    const { results, result, testing, complete } = this.state;
 
     return (
       <div>
@@ -97,34 +101,29 @@ class Comparison extends Component {
             <p className="section-description">
               To get started, click on the Train Model Button!
             </p>
-            <div className="sixteen columns">
-              <div className="ten columns offset-by-one">
-                <LossChart lossArray={seq_results} epochs={20} />
-                <br />
-                {seq_results.length > 0 ? (
-                  <h5>
-                    Mean Squared Error: {parseFloat(seq_result).toFixed(9)}
-                  </h5>
-                ) : (
-                  ''
-                )}
-                <button
-                  className={classNames({
-                    button: !testing,
-                    'button-primary': !testing && !complete
-                  })}
-                  style={{ cursor: testing ? 'progress' : 'pointer' }}
-                  onClick={() => this.trainModel()}
-                  disabled={testing | complete}
-                >
-                  {!complete
-                    ? testing
-                      ? 'Testing...'
-                      : 'Start testing Model'
-                    : 'Testing Complete'}
-                </button>
-              </div>
-            </div>
+            {/* <LossChart lossArray={seq_results} epochs={20} /> */}
+            <ApexLossChart series={results} />
+            <br />
+            {results.length > 0 ? (
+              <h5>Mean Squared Error: {parseFloat(result).toFixed(9)}</h5>
+            ) : (
+              ''
+            )}
+            <button
+              className={classNames({
+                button: !testing,
+                'button-primary': !testing && !complete
+              })}
+              style={{ cursor: testing ? 'progress' : 'pointer' }}
+              onClick={() => this.trainModel()}
+              disabled={testing | complete}
+            >
+              {!complete
+                ? testing
+                  ? 'Testing...'
+                  : 'Start testing Model'
+                : 'Testing Complete'}
+            </button>
           </div>
         </div>
       </div>

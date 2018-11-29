@@ -4,8 +4,10 @@
   "private": true,
   "dependencies": {
     "@tensorflow/tfjs": "^0.13.3",
+    "apexcharts": "^2.2.3",
     "classnames": "^2.2.6",
     "react": "^16.6.0",
+    "react-apexcharts": "^1.1.0",
     "react-burger-menu": "^2.5.4",
     "react-dom": "^16.6.0",
     "react-google-charts": "^3.0.8",

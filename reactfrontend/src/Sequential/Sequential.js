@@ -2,8 +2,8 @@ import React, { Component } from 'react';
 //import logo from './logo.svg';
 import './Sequential.css';
 import * as tf from '@tensorflow/tfjs';
-import LossChart from '../LossChart/LossChart';
 import classNames from 'classnames';
+import ApexLossChart from '../ApexLossChart/ApexLossChart';
 
 class Sequential extends Component {
   constructor() {
@@ -58,29 +58,32 @@ class Sequential extends Component {
     }
   }
   async trainModel() {
-    this.setState({ training: true });
+    this.setState({ training: true, lossArray: [] });
     // console.log(this.state.Y);
+    // const tempArray = [];
+
     const xs = tf.tensor2d(this.state.X);
     const ys = tf.tensor1d(this.state.Y);
     this.state.model.compile({ optimizer: 'adam', loss: 'meanSquaredError' });
-    var tempArray = [];
-    const h = await this.state.model.fit(xs, ys, {
+
+    await this.state.model.fit(xs, ys, {
       batchSize: 5,
       epochs: this.state.epochsCount,
       callbacks: {
         onEpochEnd: async (epoch, log) => {
           console.log(`Epoch ${epoch}: loss = ${log.loss}`);
-          tempArray.push([epoch + 1, log.loss]);
+          // tempArray.push(log.loss);
+          this.setState({ lossArray: [...this.state.lossArray, log.loss] });
         }
       }
     });
-    console.log(h.history.loss);
-    const resultOfSave = await this.state.model.save(
+
+    xs.dispose();
+    ys.dispose();
+
+    await this.state.model.save(
       tf.io.browserHTTPRequest('/Sequential/put_final_model')
     );
-    await this.setState({ lossArray: tempArray });
-    console.log(this.state.lossArray);
-    console.log(resultOfSave);
     // console.log("Loss after Epoch:" + h.history.loss[0]);
 
     // this.setState({lossArray:h.history.loss})
@@ -105,12 +108,13 @@ class Sequential extends Component {
             </p>
             <div className="sixteen columns">
               <div className="ten columns offset-by-one">
-                <LossChart lossArray={lossArray} epochs={epochsCount - 1} />
+                {/* <LossChart lossArray={lossArray} epochs={epochsCount - 1} /> */}
+                <ApexLossChart series={lossArray} />
                 <br />
                 {lossArray.length > 0 ? (
                   <h5>
                     Current Loss:{' '}
-                    {parseFloat(lossArray[lossArray.length - 1][1]).toFixed(9)}
+                    {parseFloat(lossArray[lossArray.length - 1]).toFixed(9)}
                   </h5>
                 ) : (
                   ''

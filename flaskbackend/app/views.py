@@ -246,9 +246,12 @@ class ModelManagerView(ModelView):
             UploadModelsQueue.project_name == project)).all()
 
         loss = []
-        for index, r in enumerate(res):
+        # for index, r in enumerate(res):
+        #     if r[0] is not None:
+        #         loss.append([index, r])
+        for r in res:
             if r[0] is not None:
-                loss.append([index, r])
+                loss.append(r)
 
         return jsonify(loss)
 
