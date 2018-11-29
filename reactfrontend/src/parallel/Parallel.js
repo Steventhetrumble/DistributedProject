@@ -1,16 +1,22 @@
 import React, { Component } from 'react';
 import './Parallel.css';
 import * as tf from '@tensorflow/tfjs';
-import LossChart from '../LossChart/LossChart';
-import { profile } from '@tensorflow/tfjs';
+import classNames from 'classnames';
+import ApexLossChart from '../ApexLossChart/ApexLossChart';
+import { Link } from 'react-router-dom';
 
 // function sleep(ms) {
 //   return new Promise(resolve => setTimeout(resolve, ms));
 // }
+
 class Parallel extends Component {
-  constructor() {
-    super();
+  constructor(props) {
+    super(props);
+
     this.state = {
+      complete: false,
+      training: false,
+      project: this.props.match.params.project,
       path: '',
       task: null,
       iteration: null,
@@ -18,32 +24,43 @@ class Parallel extends Component {
       model: {},
       X: [],
       Y: [],
-      epochs: 1,
       epoch: 0,
       learningRate: 0.1,
-      lossArray: [[0, 0]]
+      iterationCount: 1,
+      iterations: [1, 5, 10, 15],
+      flatData: []
     };
+
+    this.onIterationsChange = this.onIterationsChange.bind(this);
   }
 
-  componentWillMount() {
-    this.getLossResults();
-    this.getProgress();
+  async componentWillMount() {
+    await this.getLossResults();
+    await this.getProgress();
   }
 
   async getLossResults() {
-    const res = await fetch(
-      'http://127.0.0.1:8080/Parallel/get_loss/Test_Project'
-    );
+    const res = await fetch(`/Parallel/get_loss/${this.state.project}`);
 
     const data = await res.json();
-    console.log(data);
-    this.setState({ lossArray: data });
+    const flatData = await data.map(entry => entry[0]);
+
+    this.setState({ flatData });
+  }
+
+  async trainModelMultiple() {
+    this.setState({ training: true });
+
+    for (let i = 0; i < this.state.iterationCount; i++) {
+      await this.trainModel();
+    }
+    this.setState({ training: false });
   }
 
   async trainModel() {
     try {
       const status = await fetch(
-        'http://127.0.0.1:8080/Parallel/check_model_for_down/Test_Project'
+        `/Parallel/check_model_for_down/${this.state.project}`
       );
       let path;
       await status.json().then(element => {
@@ -52,28 +69,30 @@ class Parallel extends Component {
 
       console.log(path);
       if (path === 'wait') {
-        console.log('wait');
-
-        setTimeout(() => this.trainModel(), 1000);
+        setTimeout(this.trainModel(), 1000);
+        return;
       }
       if (path === 'done') {
         console.log(' is complete');
+        this.setState({ path: 'complete', complete: true, training: false });
         return;
       }
-      console.log(path);
-      const tempModelPath =
-        'http://127.0.0.1:8080/Parallel/get_Model/Test_Project/' +
-        path +
-        '/model';
+      const tempModelPath = `/Parallel/get_Model/${
+        this.state.project
+      }/${path}/model`;
       const tempmodel = await tf.loadModel(
         tf.io.browserHTTPRequest(tempModelPath)
       );
       this.setState({ model: tempmodel });
-      const dataPath =
-        'http://127.0.0.1:8080/Parallel/get_data/Test_Project/' + path;
+      const dataPath = `/Parallel/get_data/${this.state.project}/${path}`;
       const res = await fetch(dataPath);
       let tempX = [];
       let tempY = [];
+
+      const labelIndexRes = await fetch(
+        `/Parallel/get_label_index/${this.state.project}`
+      );
+      const labelIndex = await labelIndexRes.json();
 
       await res.json().then(element => {
         element.forEach(element => {
@@ -82,7 +101,7 @@ class Parallel extends Component {
 
           for (i = 0; i < element.length; i++) {
             //The seventh index is the scaled estimated cost in this model-- the label
-            if (i === 8) {
+            if (i === labelIndex[0]) {
               tempY.push(element[i]);
             } else littlex.push(element[i]);
           }
@@ -103,11 +122,14 @@ class Parallel extends Component {
 
       const xs = tf.tensor2d(this.state.X);
       const ys = tf.tensor1d(this.state.Y);
-      this.state.model.compile({ optimizer: 'adam', loss: 'meanSquaredError' });
+      this.state.model.compile({
+        optimizer: 'adam',
+        loss: 'meanSquaredError'
+      });
       let tempArray = [];
-      const h = await this.state.model.fit(xs, ys, {
+      await this.state.model.fit(xs, ys, {
         batchSize: 5,
-        epochs: this.state.epochs,
+        epochs: 1,
         callbacks: {
           onEpochEnd: async (epoch, log) => {
             console.log(`Epoch ${epoch}: loss = ${log.loss}`);
@@ -116,30 +138,16 @@ class Parallel extends Component {
           }
         }
       });
-      console.log(h.history.loss);
-      const resultPath = `http://127.0.0.1:8080/Parallel/put_model/Test_Project/${path}/${
+      const resultPath = `/Parallel/put_model/${this.state.project}/${path}/${
         tempArray[1]
       }`;
-      const resultOfSave = await this.state.model.save(
-        tf.io.browserHTTPRequest(resultPath)
-      );
-      // await this.setState({
-      //   lossArray: this.state.lossArray.concat(tempArray)
-      // });
-      // await this.state.lossArray.push(tempArray);
+      await this.state.model.save(tf.io.browserHTTPRequest(resultPath));
 
       await this.getLossResults();
       await this.getProgress();
-      console.log(resultOfSave);
     } catch (e) {
       console.log(e);
     }
-
-    // console.log(this.state.Y);
-
-    // console.log("Loss after Epoch:" + h.history.loss[0]);
-
-    // this.setState({lossArray:h.history.loss})
   }
 
   getProgress() {
@@ -153,8 +161,21 @@ class Parallel extends Component {
     this.setState({ progress: progress ? Math.floor(progress) : 0 });
   }
 
+  onIterationsChange(event) {
+    this.setState({ iterationCount: event.target.value });
+  }
+
   render() {
-    const { lossArray, epochs, task, iteration, progress } = this.state;
+    const {
+      project,
+      complete,
+      training,
+      task,
+      iteration,
+      progress,
+      iterations,
+      flatData
+    } = this.state;
 
     const header =
       progress !== 0 ? (
@@ -171,21 +192,59 @@ class Parallel extends Component {
         <br />
         <div className="section hero">
           <div className="container">
-            <h3 className="section-heading">Need help getting started?</h3>
+            <h3 className="section-heading">Parallel</h3>
             {header}
-            <div className="sixteen columns">
-              <div className="ten columns offset-by-one">
-                <LossChart lossArray={lossArray} epochs={epochs - 1} />
-                <br />
-                {/* eslint-disable-next-line */}
-                <a
-                  className="button button-primary"
-                  onClick={() => this.trainModel()}
-                >
-                  Start Training Model
-                </a>
-              </div>
+            {/* <LossChart lossArray={lossArray} epochs={epochs - 1} /> */}
+            {flatData.length > 0 ? (
+              <React.Fragment>
+                <ApexLossChart series={flatData} />
+                <h5>
+                  Current Loss:{' '}
+                  {parseFloat(flatData[flatData.length - 1]).toFixed(9)}
+                </h5>
+              </React.Fragment>
+            ) : (
+              ''
+            )}
+
+            <div className="row">
+              <select
+                className="two columns"
+                name="iterations"
+                id="iterations"
+                value={this.state.iterationCount}
+                onChange={this.onIterationsChange}
+              >
+                {iterations.map(iter => (
+                  <option value={iter} key={iter}>
+                    {iter}
+                  </option>
+                ))}
+              </select>
+              <button
+                className={classNames({
+                  button: !training,
+                  eight: true,
+                  columns: true,
+                  'button-primary': !training
+                })}
+                style={{ cursor: training ? 'progress' : 'pointer' }}
+                onClick={() => this.trainModelMultiple()}
+                disabled={training}
+              >
+                {!complete
+                  ? training
+                    ? 'Training...'
+                    : 'Start Training Model'
+                  : 'Training Complete'}
+              </button>
             </div>
+            <Link
+              to={`/Evaluation/${project}`}
+              className="button button-primary"
+            >
+              Evaluate
+            </Link>
           </div>
         </div>
       </div>

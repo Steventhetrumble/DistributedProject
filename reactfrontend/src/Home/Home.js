@@ -1,20 +1,28 @@
 import React, { Component } from 'react';
 //import logo from './logo.svg';
 import './Home.css';
-
+import { Link } from 'react-router-dom';
 
 class Home extends Component {
- 
-
   render() {
     return (
       <div className="App">
         <div className="section hero">
           <div className="container">
-            <div className="sixteen columns">
-              <div className="ten columns offset-by-one">
-                <p>this is home</p>
-              </div>
+            <br />
+            <div className="row">
+              <Link
+                to="/Sequential"
+                className="button button-primary one-half column"
+              >
+                Sequential
+              </Link>
+              <Link
+                to="/Parallel"
+                className="button button-primary one-half column"
+              >
+                Parallel
+              </Link>
             </div>
           </div>
         </div>
