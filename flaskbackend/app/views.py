@@ -54,7 +54,7 @@ class MyView(BaseView):
         return thing
 
     @expose('/get_test_data')
-    def get_testing_data(self):
+    def get_test_data(self):
         threading.Thread(target=self.test_threads).start()
         df = pd.read_csv(
             "app/static/Sequential/ScaledData/sales_data_testing_scaled.csv")

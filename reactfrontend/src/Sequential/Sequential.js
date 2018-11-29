@@ -1,9 +1,9 @@
 import React, { Component } from 'react';
-//import logo from './logo.svg';
 import './Sequential.css';
 import * as tf from '@tensorflow/tfjs';
 import classNames from 'classnames';
 import ApexLossChart from '../ApexLossChart/ApexLossChart';
+import { Link } from 'react-router-dom';
 
 class Sequential extends Component {
   constructor() {
@@ -151,6 +151,12 @@ class Sequential extends Component {
                       : 'Training Complete'}
                   </button>
                 </div>
+                <Link
+                  to={'/Evaluation/Test_Project'}
+                  className="button button-primary"
+                >
+                  Evaluate
+                </Link>
               </div>
             </div>
           </div>

@@ -3,7 +3,7 @@ import * as tf from '@tensorflow/tfjs';
 import classNames from 'classnames';
 import ApexLossChart from '../ApexLossChart/ApexLossChart';
 
-class Comparison extends Component {
+class Evaluation extends Component {
   constructor() {
     super();
     this.state = {
@@ -22,7 +22,10 @@ class Comparison extends Component {
   async componentDidMount() {
     try {
       const tempmodel = await tf.loadModel(
-        tf.io.browserHTTPRequest('/Parallel/get_final_model/Test_Project/model')
+        tf.io.browserHTTPRequest(
+          '/Parallel/get_final_model/Test_Project/model'
+        ),
+        false
       );
       this.setState({ model: tempmodel });
       const res = await fetch('/Parallel/get_test_data/Test_Project');
@@ -52,23 +55,20 @@ class Comparison extends Component {
       console.log(e);
     }
   }
+
   async trainModel() {
-    this.setState({ training: true });
     let predictions;
+    const results = [];
+    let result;
+
     await tf.tidy(() => {
       const xs = tf.tensor2d(this.state.X);
       predictions = this.state.model.predict(xs).dataSync();
     });
 
-    const results = [];
-    let result;
     await tf.tidy(() => {
       result = tf.losses.meanSquaredError(this.state.Y, predictions).dataSync();
       predictions.forEach((prediction, index) => {
-        // results.push([
-        //   index,
-        //   tf.losses.meanSquaredError(this.state.Y[index], prediction).dataSync()
-        // ]);
         results.push(
           tf.losses
             .meanSquaredError(this.state.Y[index], prediction)
@@ -97,9 +97,9 @@ class Comparison extends Component {
         <br />
         <div className="section hero">
           <div className="container">
-            <h3 className="section-heading">Comparison</h3>
+            <h3 className="section-heading">Evaluation</h3>
             <p className="section-description">
-              To get started, click on the Train Model Button!
+              To get started, click on the Tests Model Button!
             </p>
             {/* <LossChart lossArray={seq_results} epochs={20} /> */}
             <ApexLossChart series={results} />
@@ -131,4 +131,4 @@ class Comparison extends Component {
   }
 }
 
-export default Comparison;
+export default Evaluation;
