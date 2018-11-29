@@ -30,7 +30,7 @@ class Sequential extends Component {
       );
       this.setState({ model: tempmodel });
 
-      const res = await fetch('/Sequential/get_training_data/');
+      const res = await fetch('/Sequential/get_train_data');
       var tempX = [];
       var tempY = [];
 
@@ -76,7 +76,7 @@ class Sequential extends Component {
     });
     console.log(h.history.loss);
     const resultOfSave = await this.state.model.save(
-      tf.io.browserHTTPRequest('/Sequential/put_final_model/')
+      tf.io.browserHTTPRequest('/Sequential/put_final_model')
     );
     await this.setState({ lossArray: tempArray });
     console.log(this.state.lossArray);

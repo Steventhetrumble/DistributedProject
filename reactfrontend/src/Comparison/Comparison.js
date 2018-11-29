@@ -21,18 +21,14 @@ class Comparison extends Component {
 
   async componentDidMount() {
     try {
-      console.log('mounting');
       const tempmodel = await tf.loadModel(
-        tf.io.browserHTTPRequest('/Sequential/get_final_model/model')
+        tf.io.browserHTTPRequest('/Parallel/get_final_model/Test_Project/model')
       );
       this.setState({ model: tempmodel });
-      console.log('getting');
-      const res = await fetch('/Sequential/get_testing_data');
+      const res = await fetch('/Parallel/get_test_data/Test_Project');
       var tempX = [];
       var tempY = [];
-      console.log('got');
 
-      console.log(res);
       await res.json().then(element => {
         element.forEach(element => {
           var i;
@@ -115,11 +111,11 @@ class Comparison extends Component {
                 <button
                   className={classNames({
                     button: !testing,
-                    'button-primary': !testing
+                    'button-primary': !testing && !complete
                   })}
                   style={{ cursor: testing ? 'progress' : 'pointer' }}
                   onClick={() => this.trainModel()}
-                  disabled={testing}
+                  disabled={testing | complete}
                 >
                   {!complete
                     ? testing

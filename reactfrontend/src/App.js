@@ -8,6 +8,7 @@ import Home from './Home/Home';
 import Comparison from './Comparison/Comparison';
 import Team from './Team/Team';
 import ChooseProject from './ChooseProject/ChooseProject';
+import { Link } from 'react-router-dom';
 
 class App extends Component {
   async openDrawerMenu() {
@@ -23,11 +24,11 @@ class App extends Component {
     return (
       <div className="App">
         <div className="navBar" id="mainNavBar">
-          <a href="/Home">Home</a>
-          <a href="/Sequential">Sequential</a>
-          <a href="/Choose/Parallel">Parallel</a>
-          <a href="/Comparison">Comparison</a>
-          <a href="/Team">Team</a>
+          <Link to="/Home">Home</Link>
+          <Link to="/Sequential">Sequential</Link>
+          <Link to="/Parallel">Parallel</Link>
+          <Link to="/Comparison">Comparison</Link>
+          <Link to="/Team">Team</Link>
           <button className="icon" onClick={() => this.openDrawerMenu()}>
             &#9776;
           </button>
@@ -37,8 +38,8 @@ class App extends Component {
             <div className="sixteen columns">
               <div className="ten columns offset-by-one">
                 <Route exact path="/Home" component={Home} />
-                <Route exact path="/Choose" component={ChooseProject} />
                 <Route exact path="/Sequential" component={Sequential} />
+                <Route exact path="/Parallel" component={ChooseProject} />
                 <Route exact path="/Parallel/:project" component={Parallel} />
                 <Route exact path="/Comparison" component={Comparison} />
                 <Route exact path="/Team" component={Team} />

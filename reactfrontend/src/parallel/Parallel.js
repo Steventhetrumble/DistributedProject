@@ -4,11 +4,16 @@ import * as tf from '@tensorflow/tfjs';
 import LossChart from '../LossChart/LossChart';
 import classNames from 'classnames';
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 class Parallel extends Component {
   constructor(props) {
     super(props);
 
     this.state = {
+      complete: false,
       training: false,
       project: this.props.match.params.project,
       path: '',
@@ -57,7 +62,7 @@ class Parallel extends Component {
         if (path === 'wait') {
           console.log('wait');
 
-          setTimeout(() => this.trainModel(), 1000);
+          sleep(1000);
           return;
         }
         if (path === 'done') {
@@ -126,7 +131,6 @@ class Parallel extends Component {
             }
           }
         });
-        console.log(h.history.loss);
         const resultPath = `/Parallel/put_model/${this.state.project}/${path}/${
           tempArray[1]
         }`;
@@ -140,7 +144,7 @@ class Parallel extends Component {
 
         await this.getLossResults();
         await this.getProgress();
-        console.log(resultOfSave);
+        // console.log(resultOfSave);
       } catch (e) {
         console.log(e);
       }
@@ -152,7 +156,7 @@ class Parallel extends Component {
       // this.setState({lossArray:h.history.loss})
     }
 
-    this.setState({ training: false });
+    this.setState({ complete: true, training: false });
   }
 
   getProgress() {
@@ -172,8 +176,8 @@ class Parallel extends Component {
 
   render() {
     const {
+      complete,
       training,
-      path,
       lossArray,
       epochs,
       task,
@@ -192,7 +196,6 @@ class Parallel extends Component {
           To get started, click on the Train Model Button!
         </p>
       );
-    console.log(lossArray[lossArray.length - 1]);
     return (
       <div className="Parallel">
         <br />
@@ -239,8 +242,10 @@ class Parallel extends Component {
                     onClick={() => this.trainModel()}
                     disabled={training}
                   >
-                    {path !== 'complete'
-                      ? 'Start Training Model'
+                    {!complete
+                      ? training
+                        ? 'Training...'
+                        : 'Start Training Model'
                       : 'Training Complete'}
                   </button>
                 </div>

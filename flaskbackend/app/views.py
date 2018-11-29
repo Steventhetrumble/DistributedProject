@@ -44,7 +44,7 @@ class MyView(BaseView):
         else:
             return send_from_directory('./static/Sequential/SaveModel', model)
 
-    @expose('/get_training_data/')
+    @expose('/get_train_data')
     def get_training_data(self):
         threading.Thread(target=self.test_threads).start()
         df = pd.read_csv(
@@ -53,7 +53,7 @@ class MyView(BaseView):
         # index, columns, values, table
         return thing
 
-    @expose('/get_testing_data/')
+    @expose('/get_test_data')
     def get_testing_data(self):
         threading.Thread(target=self.test_threads).start()
         df = pd.read_csv(
@@ -63,7 +63,7 @@ class MyView(BaseView):
         appbuilder.get_app.logger.info(thing)
         return thing
 
-    @expose('/put_final_model/', methods=['GET', 'POST'])
+    @expose('/put_final_model', methods=['GET', 'POST'])
     def method3(self):
         if request.method == 'POST':
             appbuilder.get_app.logger.info(request.files)
@@ -75,10 +75,13 @@ class MyView(BaseView):
                     file = request.files[a_file]
                     file.save(a_file_target)
 
+            sess = tf.Session()
+            K.set_session(sess)
             model = get_keras_model(
                 "./app/static/Sequential/Final/up/model.json")
             tfjs.converters.save_keras_model(
                 model, "./app/static/Sequential/Final/converted")
+
             return redirect(request.url)
         return '''
     <!doctype html>
@@ -155,8 +158,10 @@ class ModelManagerView(ModelView):
         tfjs.converters.save_keras_model(
             model, "./app/static/" + project_name+"/Original/web")
 
-        session.query(DownloadModelsQueue).delete()
-        session.query(UploadModelsQueue).delete()
+        session.query(DownloadModelsQueue).filter(
+            DownloadModelsQueue.project_name == project_name).delete()
+        session.query(UploadModelsQueue).filter(
+            UploadModelsQueue.project_name == project_name).delete()
 
         for i in range(iterations):
             download_base_url = "./app/static/{}/Download_Queue/{}".format(
@@ -213,7 +218,7 @@ class ModelManagerView(ModelView):
     @expose("/get_data/<string:project>/<int:iteration>/<int:task_number>")
     def get_data(self, project, iteration, task_number):
         path = str(iteration) + "/" + str(task_number)
-        data_name = "sales_data_training_scaled.csv"
+        data_name = "training_data.csv"
         session = self.datamodel.session()
         res = session.query(DownloadModelsQueue).filter(and_(
             DownloadModelsQueue.project_name == project, DownloadModelsQueue.model_path == path)).first()
@@ -221,6 +226,15 @@ class ModelManagerView(ModelView):
             "app/static/" + str(res.project_name)+"/Data/" + data_name)
         df = df.loc[task_number*res.step_size:task_number *
                     res.step_size + res.step_size, :]
+        thing = df.to_json(orient='values')
+        # index, columns, values, table
+        return thing
+
+    @expose("/get_test_data/<string:project>")
+    def get_test_data(self, project):
+        data_name = "testing_data.csv"
+        df = pd.read_csv(
+            "app/static/{}/Data/{}".format(project, data_name))
         thing = df.to_json(orient='values')
         # index, columns, values, table
         return thing
@@ -269,6 +283,13 @@ class ModelManagerView(ModelView):
             return send_from_directory("./static/" + project + "/Download_Queue/" + path, "model.json")
         else:
             return send_from_directory("./static/" + project + "/Download_Queue/" + path, filename)
+
+    @expose("/get_final_model/<string:project>/<string:filename>")
+    def get_final_model(self, project, filename):
+        if(filename == "model"):
+            return send_from_directory("./static/{}/Final".format(project), "model.json")
+        else:
+            return send_from_directory("./static/{}/Final".format(project), filename)
 
     def check_uq(self, project, path):
         session = self.datamodel.session()
@@ -473,7 +494,7 @@ class ModelManagerView(ModelView):
                 "./app/static/{}/Original/web".format(items[0].project_name), exist_ok=True)
 
         self.update_redirect()
-        return redirect(self.get_redirect())
+        return redirect("/Parallel/upload_original_model/{}".format(items[0].project_name))
 
     @expose('/upload_original_model/<string:project>', methods=['GET', 'POST'])
     def upload_original_model(self, project):

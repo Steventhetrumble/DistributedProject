@@ -18,7 +18,7 @@ class Home extends Component {
                 Sequential
               </Link>
               <Link
-                to="/Choose/Parallel"
+                to="/Parallel"
                 className="button button-primary one-half column"
               >
                 Parallel
