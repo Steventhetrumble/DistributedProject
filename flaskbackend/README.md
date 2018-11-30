@@ -2,11 +2,15 @@
 
 ## Install
 
+Dependencies: Python 3.x, venv, pip
+
 ```
 python -m venv venv
 . venv/bin/activate
 pip install -r requirements.txt
 ```
+
+NOTE: Linux users may need to use `python3` instead of `python`
 
 Setup admin account and database
 
@@ -16,6 +20,9 @@ fabmanager create-admin
 ```
 
 Follow the prompts to create the admin account (values can be anything, but remember username and password)
+
+NOTE: If credentials are forgotten, another admin account can be created as long as the username and email are unique.
+Alternatively, delete the `app.db` file and run `fabmanager create-db` command again, followed by `fabmanager create-admin`.
 
 ## Run
 
