@@ -102,7 +102,7 @@ class Sequential extends Component {
         <br />
         <div className="section hero">
           <div className="container">
-            <h3 className="section-heading">Need help getting started?</h3>
+            <h3 className="section-heading">Sequential</h3>
             <p className="section-description">
               To get started, click on the Train Model Button!
             </p>
@@ -151,12 +151,6 @@ class Sequential extends Component {
                       : 'Training Complete'}
                   </button>
                 </div>
-                <Link
-                  to={'/Evaluation/Test_Project'}
-                  className="button button-primary"
-                >
-                  Evaluate
-                </Link>
               </div>
             </div>
           </div>

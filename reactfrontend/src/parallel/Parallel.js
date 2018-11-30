@@ -109,8 +109,8 @@ class Parallel extends Component {
         });
       });
 
-      const task = /^[0-9]+/.exec(path)[0];
-      const iteration = /[0-9]+$/.exec(path)[0];
+      const iteration = /^[0-9]+/.exec(path)[0];
+      const task = /[0-9]+$/.exec(path)[0];
 
       this.setState({
         path,
@@ -152,9 +152,9 @@ class Parallel extends Component {
 
   getProgress() {
     const progress =
-      ((parseInt(this.state.task) +
+      ((parseInt(this.state.iteration) +
         1 +
-        (parseInt(this.state.iteration) + 1) / 5) /
+        (parseInt(this.state.task) + 1) / 5) /
         20) *
       100;
 
@@ -180,7 +180,7 @@ class Parallel extends Component {
     const header =
       progress !== 0 ? (
         <p className="section-description">
-          Task: {task} | iteration: {iteration} | Progress: {progress}%
+          Iteration: {iteration} | task: {task} | Progress: {progress}%
         </p>
       ) : (
         <p className="section-description">
