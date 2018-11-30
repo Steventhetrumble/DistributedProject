@@ -12,7 +12,7 @@ Distributed NN Training
 
 ### Frontend
 
-1. NodeJS
+1. NodeJS (v. 10.x)
 
 ## Details
 
