@@ -3,7 +3,6 @@ import './Sequential.css';
 import * as tf from '@tensorflow/tfjs';
 import classNames from 'classnames';
 import ApexLossChart from '../ApexLossChart/ApexLossChart';
-import { Link } from 'react-router-dom';
 
 class Sequential extends Component {
   constructor() {
@@ -59,8 +58,6 @@ class Sequential extends Component {
   }
   async trainModel() {
     this.setState({ training: true, lossArray: [] });
-    // console.log(this.state.Y);
-    // const tempArray = [];
 
     const xs = tf.tensor2d(this.state.X);
     const ys = tf.tensor1d(this.state.Y);
@@ -72,7 +69,6 @@ class Sequential extends Component {
       callbacks: {
         onEpochEnd: async (epoch, log) => {
           console.log(`Epoch ${epoch}: loss = ${log.loss}`);
-          // tempArray.push(log.loss);
           this.setState({ lossArray: [...this.state.lossArray, log.loss] });
         }
       }
@@ -84,9 +80,7 @@ class Sequential extends Component {
     await this.state.model.save(
       tf.io.browserHTTPRequest('/Sequential/put_final_model')
     );
-    // console.log("Loss after Epoch:" + h.history.loss[0]);
 
-    // this.setState({lossArray:h.history.loss})
     this.setState({ training: false, complete: true });
   }
 
