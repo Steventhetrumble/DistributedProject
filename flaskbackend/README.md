@@ -15,7 +15,7 @@ fabmanager create-db
 fabmanager create-admin
 ```
 
-Follow the prompts to create the admin account (Remember username and password)
+Follow the prompts to create the admin account (values can be anything, but remember username and password)
 
 ## Run
 
@@ -34,7 +34,7 @@ Setup Test Project
 1. Click '+' on the left side of the List Model Manager card
 1. Enter the following
 
-   - Project Name: TestProject
+   - Project Name: Test_Project
    - Steps per Iteration: 1000
    - Max Steps: 20000
    - Data Size: 1000
@@ -45,13 +45,13 @@ Setup Test Project
 1. Terminate the server and run it again
 1. Click the checkbox beside the new model entry
 1. Click the action dropdown and select 'Create Project Directory'
-1. For the Model, click upload and upload 'trained_model.h5' located in SampleData&Model in the flaskbackend directory.
+1. For the Model, click 'choose file and choose 'trained_model.h5' located in SampleData&Model in the flaskbackend directory.
    - NOTE: the h5 file is a saved Keras model, defining model structure and possible starting weights
-1. Click submit
-1. For the Training data, click upload and upload 'training_data.csv' located in SampleData&Model in the flaskbackend directory.
-1. Click submit
-1. For the Testing data, click upload and upload 'testing_data.csv' located in SampleData&Model in the flaskbackend directory.
-1. Click submit
+1. Click upload
+1. For the Training data, click 'choose file' and choose 'training_data.csv' located in SampleData&Model in the flaskbackend directory.
+1. Click upload
+1. For the Testing data, click 'choose file' and choose 'testing_data.csv' located in SampleData&Model in the flaskbackend directory.
+1. Click upload
 1. Wait for 'complete' to appear on the screen.
 
 Backend is now ready to serve tasks to the client
