@@ -6,6 +6,9 @@ from sqlalchemy.orm import relationship
 
 class ModelManager(Model):
     # TODO: can replace all paths with one path and add endings in create download queue function
+    """
+    Handles all the attributes of model from the database
+    """
     id = Column(Integer, primary_key=True)
     project_name = Column(String(100), unique=True, nullable=False)
     steps_per_iteration = Column(Integer)
@@ -17,10 +20,16 @@ class ModelManager(Model):
     is_combining = Column(Boolean, default=False)
 
     def __repr__(self):
+    """
+    Getter for project name
+    """
         return self.project_name
 
 
 class DownloadModelsQueue(Model):
+    """
+    Accesser class for the download queue of models and attributes
+    """
     id = Column(Integer, primary_key=True)
     project_name = Column(String(100), nullable=False)
     current_iteration = Column(Integer, nullable=False)
@@ -32,10 +41,16 @@ class DownloadModelsQueue(Model):
     is_checked_out = Column(Boolean, default=False)
 
     def __repr__(self):
+        """
+        Getter for project name
+        """
         return self.project_name
 
 
 class UploadModelsQueue(Model):
+    """
+    Accesser class for the upload queue of the models and attributes
+    """
     id = Column(Integer, primary_key=True)
     project_name = Column(String(100), nullable=False)
     loss = Column(Float)
@@ -45,6 +60,9 @@ class UploadModelsQueue(Model):
     is_uploaded = Column(Boolean, default=False)
 
     def __repr__(self):
+        """
+        Getter for project name
+        """
         return self.project_name
 
 
