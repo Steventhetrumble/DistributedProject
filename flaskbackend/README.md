@@ -2,15 +2,24 @@
 
 ## Install
 
-Dependencies: Python 3.x, venv, pip
+Dependencies: Python 3.5.x 64-bit, venv, pip
 
+Windows
 ```
 python -m venv venv
-. venv/bin/activate (Scripts/activate.bat on windows)
+. venv/Scripts/activate.bat
+pip install -r requirements.txt
+```
+
+Mac/Linux
+```
+python -m venv venv
+. venv/bin/activate
 pip install -r requirements.txt
 ```
 
 NOTE: Linux users may need to use `python3` instead of `python`
+NOTE: If installing fails due to tensorflow, ensure you are using python 3.5.x in 64-bit (3.6 64-bit should also work)
 
 Setup admin account and database
 

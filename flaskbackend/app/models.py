@@ -20,9 +20,9 @@ class ModelManager(Model):
     is_combining = Column(Boolean, default=False)
 
     def __repr__(self):
-    """
-    Getter for project name
-    """
+        """
+        Getter for project name
+        """
         return self.project_name
 
 

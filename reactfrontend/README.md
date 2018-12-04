@@ -29,3 +29,5 @@ Clicking on "Start Training Model" will call the backend for the next task, then
 ### Evaluate
 
 Gets the final model from the backend as well as the testing data. Once "Start Testing Model" is clicked, the testing data is used on the final model to get the Mean Square Error (MSE) for each test data entry, as well as the overall MSE. The individual MSE values are shown in the graph, with the overall shown below the graph.
+
+NOTE: Hitting `traing model` button before runnning through the project to complete in `Parallel` will have no effect, due to the fact that the final model will have yet to be generated. 
