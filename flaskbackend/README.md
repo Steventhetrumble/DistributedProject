@@ -6,7 +6,7 @@ Dependencies: Python 3.x, venv, pip
 
 ```
 python -m venv venv
-. venv/bin/activate
+. venv/bin/activate (Scripts/activate.bat on windows)
 pip install -r requirements.txt
 ```
 
