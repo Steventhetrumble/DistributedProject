@@ -153,7 +153,6 @@ class Parallel extends Component {
   getProgress() {
     const progress =
       ((parseInt(this.state.iteration) +
-        1 +
         (parseInt(this.state.task) + 1) / 5) /
         20) *
       100;

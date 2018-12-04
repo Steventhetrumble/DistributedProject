@@ -57,32 +57,36 @@ class Evaluation extends Component {
   }
 
   async trainModel() {
-    let predictions;
-    const results = [];
-    let result;
-
-    await tf.tidy(() => {
-      const xs = tf.tensor2d(this.state.X);
-      predictions = this.state.model.predict(xs).dataSync();
-    });
-
-    await tf.tidy(() => {
-      result = tf.losses.meanSquaredError(this.state.Y, predictions).dataSync();
-      predictions.forEach((prediction, index) => {
-        results.push(
-          tf.losses
-            .meanSquaredError(this.state.Y[index], prediction)
-            .dataSync()[0]
-        );
+    try {
+      let predictions;
+      const results = [];
+      let result;
+  
+      await tf.tidy(() => {
+        const xs = tf.tensor2d(this.state.X);
+        predictions = this.state.model.predict(xs).dataSync();
       });
-    });
-
-    this.setState({
-      results,
-      result,
-      training: false,
-      complete: true
-    });
+  
+      await tf.tidy(() => {
+        result = tf.losses.meanSquaredError(this.state.Y, predictions).dataSync();
+        predictions.forEach((prediction, index) => {
+          results.push(
+            tf.losses
+              .meanSquaredError(this.state.Y[index], prediction)
+              .dataSync()[0]
+          );
+        });
+      });
+  
+      this.setState({
+        results,
+        result,
+        training: false,
+        complete: true
+      });
+    } catch (e) {
+      console.log(e);
+    }
   }
 
   onChange(event) {
