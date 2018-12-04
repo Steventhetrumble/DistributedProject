@@ -26,17 +26,29 @@ from keras import backend as K
 
 #    Create your Views::
 class MyView(BaseView):
+    """
+    Base view for accessing data corresponding to a sequential model
+
+    Can be used to retrieve the model itself, the training data for it, the test
+    data, or get the final model. As well as push the final model as well.
+    """
     route_base = "/Sequential"
     ALLOWED_EXTENSIONS = set(
         ['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'bin', 'json'])
 
     def test_threads(self):
+        """
+        tester function for multithreading
+        """
         for _ in range(2):
             time.sleep(1)
             appbuilder.get_app.logger.info("hey how are you")
 
     @expose('/get_model/<string:model>')
     def get_model(self, model):
+        """
+        endpoint API to retrieve the model
+        """
         # do something with model
         # and return it
         if(model == "model"):
@@ -46,6 +58,9 @@ class MyView(BaseView):
 
     @expose('/get_train_data')
     def get_training_data(self):
+        """
+        Getter endpoint API to get training data
+        """
         threading.Thread(target=self.test_threads).start()
         df = pd.read_csv(
             "app/static/Sequential/ScaledData/sales_data_training_scaled.csv")
@@ -55,6 +70,9 @@ class MyView(BaseView):
 
     @expose('/get_test_data')
     def get_test_data(self):
+        """
+        Getter endpoint API to get test data
+        """
         threading.Thread(target=self.test_threads).start()
         df = pd.read_csv(
             "app/static/Sequential/ScaledData/sales_data_testing_scaled.csv")
@@ -65,6 +83,12 @@ class MyView(BaseView):
 
     @expose('/put_final_model', methods=['GET', 'POST'])
     def method3(self):
+        """
+        url endpoint for uploading model
+
+        if a file is sent using the post method it is saved to the server
+        otherwise a forum is displayed to select a file to upload
+        """
         if request.method == 'POST':
             appbuilder.get_app.logger.info(request.files)
             for a_file in request.files:
@@ -94,11 +118,17 @@ class MyView(BaseView):
     '''
 
     def allowed_file(self, filename):
+        """
+        tests if a file name and extension is allowed
+        """
         return '.' in filename and \
             filename.rsplit('.', 1)[1].lower() in self.ALLOWED_EXTENSIONS
 
     @expose("/get_final_model/<string:model>")
     def get_final_model(self, model):
+        """
+        Getter API for the final iteration of the model's weights
+        """
         if(model == "model"):
             return send_from_directory('./static/Sequential/Final/converted', "model.json")
         else:
@@ -106,6 +136,12 @@ class MyView(BaseView):
 
 
 class ModelManagerView(ModelView):
+    """
+    View for accessing and manipulating data corresponding to a parallel model
+
+    Can be used to retrieve the model itself, the training data for it, or the test data.
+    requires a download and upload queue to be setup.
+    """
     route_base = "/Parallel"
     datamodel = SQLAInterface(ModelManager, db.session)
     list_columns = ["project_name", "label_index", "steps_per_iteration",
@@ -120,6 +156,9 @@ class ModelManagerView(ModelView):
 
     @expose("/get_label_index/<string:project_name>")
     def get_label_index(self, project_name):
+        """
+        getter for the list of labels by index
+        """
         session = self.datamodel.session()
         res = session.query(ModelManager.label_index).filter(
             ModelManager.project_name == project_name).first()
@@ -127,6 +166,9 @@ class ModelManagerView(ModelView):
 
     @expose("/list_models/")
     def list_models(self):
+        """
+        getter for list of projects as a json resource
+        """
         session = self.datamodel.session()
         res = session.query(ModelManager.project_name).all()
         projects = []
@@ -136,7 +178,9 @@ class ModelManagerView(ModelView):
 
     @expose("/create_download_queue/<string:project_name>")
     def create_download_queue(self, project_name):
-
+        """
+        Given the parameters of the project determine the size of the download queue and create it
+        """
         session = self.datamodel.session()
         res = session.query(ModelManager).filter(
             ModelManager.project_name == project_name).first()
@@ -150,6 +194,11 @@ class ModelManagerView(ModelView):
         return "complete"
 
     def prepare_down_up_file_struct(self, iterations, splits, project_name, data_split_size, data_size):
+        """
+        prepares both the file download and upload queue from the parameters of a project
+
+        works on a per session basis
+        """
         session = self.datamodel.session()
         model_name = "trained_model.h5"
         model = load_model("./app/static/" + project_name +
@@ -209,6 +258,9 @@ class ModelManagerView(ModelView):
 
     @expose("/method1/<string:projects>")
     def method1(self, projects):
+        """
+        Obtains the data size of the project
+        """
         session = self.datamodel.session()
         res = session.query(ModelManager.Data_Size).filter(
             ModelManager.project_name == projects).first()
@@ -217,6 +269,11 @@ class ModelManagerView(ModelView):
 
     @expose("/get_data/<string:project>/<int:iteration>/<int:task_number>")
     def get_data(self, project, iteration, task_number):
+        """
+        gets the corresponding training data for the given iteration of the project
+
+        accesses the downloads queue to get the training data if any
+        """
         path = str(iteration) + "/" + str(task_number)
         data_name = "training_data.csv"
         session = self.datamodel.session()
@@ -232,6 +289,9 @@ class ModelManagerView(ModelView):
 
     @expose("/get_test_data/<string:project>")
     def get_test_data(self, project):
+        """
+        gets the test data for the corresponding project
+        """
         data_name = "testing_data.csv"
         df = pd.read_csv(
             "app/static/{}/Data/{}".format(project, data_name))
@@ -241,6 +301,9 @@ class ModelManagerView(ModelView):
 
     @expose("/get_loss/<string:project>")
     def get_loss(self, project):
+        """
+        returns the loss over time as a json
+        """
         session = self.datamodel.session()
         res = session.query(UploadModelsQueue.loss).filter(and_(
             UploadModelsQueue.project_name == project)).all()
@@ -257,6 +320,9 @@ class ModelManagerView(ModelView):
 
     @expose("/check_model_for_down/<string:project>")
     def check_model_for_down(self, project):
+        """
+        Checks if the project is in the download queue
+        """
         session = self.datamodel.session()
         res = session.query(ModelManager).filter(
             ModelManager.project_name == project).first()
@@ -268,6 +334,9 @@ class ModelManagerView(ModelView):
             return jsonify({'result': path})
 
     def check_model_for_up(self, project, iteration, task_number):
+        """
+        Checks if the project is in the upload queue
+        """
         path = iteration + "/" + task_number
         session = self.datamodel.session()
         res = session.query(ModelManager).filter(
@@ -281,6 +350,11 @@ class ModelManagerView(ModelView):
 
     @expose("/get_Model/<string:project>/<string:iteration>/<string:task_number>/<string:filename>")
     def get_Model(self, project, iteration, task_number, filename):
+        """
+        Grabs the model weights of the specified project, iteration, task_number, and filename
+
+        If no filename is given it is defaulted to model.json
+        """
         path = iteration + "/" + task_number
         if(filename == "model"):
             return send_from_directory("./static/" + project + "/Download_Queue/" + path, "model.json")
@@ -289,18 +363,33 @@ class ModelManagerView(ModelView):
 
     @expose("/get_final_model/<string:project>/<string:filename>")
     def get_final_model(self, project, filename):
+        """
+        Get the final set of weights from a parallel model
+
+        default filename is model.json
+        """
         if(filename == "model"):
             return send_from_directory("./static/{}/Final".format(project), "model.json")
         else:
             return send_from_directory("./static/{}/Final".format(project), filename)
 
     def check_uq(self, project, path):
+        """
+        checks if the upload queue contains the path given
+        """
         session = self.datamodel.session()
         res = session.query(UploadModelsQueue).filter(and_(
             UploadModelsQueue.project_name == project, UploadModelsQueue.model_path == path)).first()
         return res.is_uploaded
 
     def check_dq(self, project):
+        """
+        checks the project status
+
+        if the model is done returns done
+        if combination returns wait
+        if the model is incomplete and created it will return its path
+        """
         session = self.datamodel.session()
         if(self.check_if_complete(project)):
             return "done"
@@ -318,6 +407,9 @@ class ModelManagerView(ModelView):
             return res.model_path
 
     def check_if_complete(self, project):
+        """
+        returns true if the model has finished training
+        """
         session = self.datamodel.session()
         res = session.query(DownloadModelsQueue).filter(and_(
             DownloadModelsQueue.project_name == project, DownloadModelsQueue.is_complete == False)).all()
@@ -327,6 +419,9 @@ class ModelManagerView(ModelView):
             return False
 
     def check_if_combining(self, project):
+        """
+        returns true is the model is currently in the process of combining
+        """
         session = self.datamodel.session()
         res = session.query(DownloadModelsQueue).filter(and_(DownloadModelsQueue.project_name == project,
                                                              DownloadModelsQueue.is_complete == False, DownloadModelsQueue.is_created == True)).all()
@@ -336,6 +431,9 @@ class ModelManagerView(ModelView):
             return False
 
     def check_if_checked_out(self, project):
+        """
+        returns true if the model has been checked out by a client
+        """
         session = self.datamodel.session()
         res = session.query(DownloadModelsQueue).filter(and_(DownloadModelsQueue.project_name == project, DownloadModelsQueue.is_complete ==
                                                              False, DownloadModelsQueue.is_created == True, DownloadModelsQueue.is_checked_out == False)).all()
@@ -345,6 +443,9 @@ class ModelManagerView(ModelView):
             return False
 
     def check_if_iteration_is_complete(self, project):
+        """
+        returns true if the project has finished its current iterations
+        """
         session = self.datamodel.session()
         model_manager = session.query(ModelManager).filter(
             ModelManager.project_name == project).first()
@@ -358,6 +459,9 @@ class ModelManagerView(ModelView):
             return False
 
     def check_and_combine(self, project):
+        """
+        checks if the model is able to combine is so starts combining
+        """
         session = self.datamodel.session()
         model_manager = session.query(ModelManager).filter(
             ModelManager.project_name == project).first()
@@ -372,6 +476,12 @@ class ModelManagerView(ModelView):
 
     @expose('/put_model/<string:project>/<string:iteration>/<string:task_number>/<string:loss>', methods=['GET', 'POST'])
     def put_model(self, project, iteration, task_number, loss):
+        """
+        url endpoint for uploading model
+
+        if a file is sent using the post method it is saved to the server
+        otherwise a forum is displayed to select a file to upload
+        """
         path = iteration + "/" + task_number
 
         session = self.datamodel.session()
@@ -410,9 +520,15 @@ class ModelManagerView(ModelView):
     '''
 
     def allowed_file(self, filename):
+        """
+        checks if the filename and extension is valid
+        """
         return '.' in filename and filename.rsplit('.', 1)[1].lower() in self.ALLOWED_EXTENSIONS
 
     def combine_model(self, project):
+        """
+        combines the parallelized layers through an averaging function
+        """
         session = self.datamodel.session()
         model_manager = session.query(ModelManager).filter(
             ModelManager.project_name == project).first()
@@ -465,6 +581,9 @@ class ModelManagerView(ModelView):
 
     @action("create_project", "Create project directory", "Create?", "fa-rocket", single=True)
     def create_project(self, items):
+        """
+        initializes project by creating a directory for its queues, training data, etc.
+        """
         if not os.path.exists("./app/static/{}/Data".format(items[0].project_name)):
             os.makedirs(
                 "./app/static/{}/Data".format(items[0].project_name), exist_ok=True)
@@ -501,6 +620,9 @@ class ModelManagerView(ModelView):
 
     @expose('/upload_original_model/<string:project>', methods=['GET', 'POST'])
     def upload_original_model(self, project):
+        """
+        display a form to upload an existing model
+        """
         if request.method == 'POST':
             appbuilder.get_app.logger.info(request.files)
             for a_file in request.files:
@@ -522,6 +644,9 @@ class ModelManagerView(ModelView):
 
     @expose('/upload_training_data/<string:project>', methods=['GET', 'POST'])
     def upload_training_data_model(self, project):
+        """
+        display a form to upload training data
+        """
         if request.method == 'POST':
             appbuilder.get_app.logger.info(request.files)
             for a_file in request.files:
@@ -543,6 +668,9 @@ class ModelManagerView(ModelView):
 
     @expose('/upload_testing_data/<string:project>', methods=['GET', 'POST'])
     def upload_testing_data(self, project):
+        """
+        display a form to upload test data
+        """
         if request.method == 'POST':
             appbuilder.get_app.logger.info(request.files)
             for a_file in request.files:
@@ -564,6 +692,9 @@ class ModelManagerView(ModelView):
 
 
 class DownloadModelsQueueView(ModelView):
+    """
+    handles the table related to objects in download queue
+    """
     datamodel = SQLAInterface(DownloadModelsQueue, db.session)
     list_columns = ["project_name", "current_iteration", "model_path",
                     "step", "step_size", "is_created", "is_complete", "is_checked_out"]
@@ -571,12 +702,18 @@ class DownloadModelsQueueView(ModelView):
 
     @action("muldelete", "Delete", "Delete all Really?", "fa-rocket", single=False)
     def muldelete(self, items):
+        """
+        delete the list of items given from the table
+        """
         self.datamodel.delete_all(items)
         self.update_redirect()
         return redirect(self.get_redirect())
 
 
 class UploadModelsQueueView(ModelView):
+    """
+    handles the table related to objects in the upload queue
+    """
     datamodel = SQLAInterface(UploadModelsQueue, db.session)
     list_columns = ["project_name", "loss", "current_iteration",
                     "model_path", "step", "is_uploaded"]
@@ -584,10 +721,16 @@ class UploadModelsQueueView(ModelView):
 
     @expose("/buildNextUploadQueue/")
     def buildNextUploadQueue(self):
+        """
+        redirects to building the upload queue endpoint
+        """
         return redirect(self.get_redirect())
 
     @action("muldelete", "Delete", "Delete all Really?", "fa-rocket", single=False)
     def muldelete(self, items):
+        """
+        delete the items in the list given from the upload table
+        """
         self.datamodel.delete_all(items)
         self.update_redirect()
         return redirect(self.get_redirect())
@@ -618,6 +761,9 @@ db.create_all()
 
 
 def average_combine(model_list):
+    """
+    aggregation function for layers
+    """
     output_model = clone_model(model_list[0])
     for layer in enumerate(model_list[0].layers):
         # retrieve weights for the layer from the first model in the list
@@ -635,4 +781,7 @@ def average_combine(model_list):
 
 
 def get_keras_model(path):
+    """
+    getter function for keras model
+    """
     return tfjs.converters.load_keras_model(path, use_unique_name_scope=True)

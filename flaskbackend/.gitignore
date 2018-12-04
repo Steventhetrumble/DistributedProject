@@ -8,6 +8,8 @@ app.db
 **/Lib
 **/.vscode
 **/__pycache__
+**/Download_Queue
+**/Upload_Queue
 env
 venv
 *.sublime*
